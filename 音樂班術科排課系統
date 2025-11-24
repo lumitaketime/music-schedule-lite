@@ -1,0 +1,3143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 【版本號更新】v2.2.0 - 視覺修復與優化 -->
+    <title>音樂班術科排課系統 v2.2.0 (視覺修復與優化) | Niaosong Music Schedule Lite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 採用 Apple 系統字體，確保在 macOS/iOS 上的排版體驗 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        :root {
+            /* 預設主題變數 (會被 JS 覆寫) */
+            --bg-gradient-from: #F2F3F5;
+            --bg-gradient-to: #FFFFFF;
+            --primary-color: #3b82f6; /* Apple Blue */
+            --accent-blob: #d1d5db;
+            
+            /* 介面顏色變數 */
+            --text-main: #334155;
+            --text-sub: #64748b;
+            --bg-panel: rgba(255, 255, 255, 0.85);
+            --bg-header: #ffffff; 
+            --bg-input: #ffffff;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --hover-bg: rgba(247, 247, 247, 0.9); /* Subtle hover for light mode */
+            
+            /* 按鈕選中狀態變數 */
+            --btn-active-bg: #3b82f6;
+            --btn-active-text: #ffffff;
+            --btn-backdrop: none;
+            --btn-border: none;
+            
+            /* 卡片變數 */
+            --card-ind-bg: #ffffff;
+            --card-ind-text: #334155;
+            --card-grp-bg: #ecfdf5; /* Light Green */
+            --card-grp-text: #047857; /* Deep Green */
+            /* 練琴 (Practice) */
+            --card-prc-bg: #fff7ed; /* Light Orange */
+            --card-prc-text: #c2410c; /* Deep Orange */
+            /* 其他/外借 (Other) */
+            --card-oth-bg: #f3f4f6; /* Light Gray */
+            --card-oth-text: #4b5563; /* Medium Gray */
+
+            /* 深色模式下優化後的查詢/列表背景色 */
+            --search-list-bg: rgba(255, 255, 255, 0.8);
+            --search-list-border: rgba(226, 232, 240, 0.8);
+            
+            /* 狀態語義化色彩 */
+            --color-warning-soft: #fef2f2;
+            --color-warning-text: #b91c1c;
+
+            /* 學生資料庫顏色方案 (用於列表和卡片文字) */
+            --student-major-color: #3b82f6; 
+            --student-group-color: #10b981; 
+            --student-ability-color: #f97316; 
+        }
+
+        /* 針對 Black 主題進行細節覆蓋 (Apple Dark Mode Style) */
+        .theme-black {
+            --bg-gradient-from: #1c1c1e; /* Deep Gray background */
+            --bg-gradient-to: #0a0a0a;
+            --primary-color: #0a84ff; /* Apple Dark Mode Blue */
+            --accent-blob: #3a3a3c;
+            
+            --text-main: #f2f2f7; /* Near White */
+            --text-sub: #8e8e93; /* Soft Gray */
+            --bg-panel: rgba(28, 28, 30, 0.85); /* Dark Modal/Panel */
+            --bg-header: #1c1c1e; 
+            --bg-input: #3a3a3c; /* Elevated Input/Button BG */
+            --border-color: rgba(255, 255, 255, 0.15);
+            --hover-bg: rgba(60, 60, 67, 0.3); /* Subtle hover for dark mode */
+            
+            --search-list-bg: rgba(28, 28, 30, 0.9); 
+            --search-list-border: rgba(255, 255, 255, 0.15); 
+            --color-warning-soft: #300000;
+            --color-warning-text: #ff453a; /* Apple Dark Mode Red */
+
+            --student-major-color: #6daafc; 
+            --student-group-color: #66c6b3; 
+            --student-ability-color: #ff9f4a; 
+            
+            /* 深色模式下練琴與其他課程調整 */
+            --card-prc-bg: #402c00; /* Darker orange base */
+            --card-prc-text: #ff9f4a;
+            --card-oth-bg: #3a3a3c;
+            --card-oth-text: #d1d1d6;
+        }
+
+        /* 全域字體與背景 */
+        body { 
+            font-family: 'PingFang TC', 'Noto Sans TC', -apple-system, system-ui, sans-serif; 
+            background: linear-gradient(135deg, var(--bg-gradient-from) 0%, var(--bg-gradient-to) 100%);
+            color: var(--text-main);
+            transition: all 0.5s ease;
+            overscroll-behavior-y: none;
+        }
+
+        /* 數字等寬 */
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        
+        /* 毛玻璃面板 */
+        .glass-panel {
+            background-color: var(--bg-panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        /* 排課表格樣式優化 */
+        .schedule-corner { 
+            position: sticky; 
+            top: 0; 
+            left: 0; 
+            z-index: 100 !important; /* 最高層次 */
+            background-color: var(--bg-header) !important; 
+            border-bottom: 1px solid var(--border-color); 
+            border-right: 1px solid var(--border-color); /* 確保角落邊框 */
+            opacity: 1 !important; 
+            backdrop-filter: none !important; 
+            -webkit-backdrop-filter: none !important; 
+        }
+        .schedule-row-header { 
+            position: sticky; /* 確保粘性 */
+            top: 0; 
+            z-index: 40; 
+            background-color: var(--bg-header) !important; /* 確保不透明 */
+            opacity: 1 !important; 
+            border-right: none; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        .schedule-col-header { 
+            position: sticky; /* 確保粘性 */
+            left: 0; 
+            z-index: 90 !important; /* 次高層次，覆蓋表格內容 */
+            background-color: var(--bg-header) !important; /* 確保不透明 */
+            opacity: 1 !important; 
+            border-right: 1px solid var(--border-color); 
+            border-bottom: 1px solid var(--border-color); 
+        } 
+        
+        .schedule-cell {
+            position: relative;
+            z-index: 10;
+            border-bottom: 1px solid var(--border-color);
+            border-right: none; 
+            /* 預設的過渡效果，僅在非拖曳狀態下啟用 */
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .schedule-cell:hover { background-color: var(--hover-bg); }
+
+        /* 互動效果 */
+        .interactive-btn:active, .schedule-card:active { transform: scale(0.98); }
+        .schedule-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 20;
+        }
+        .schedule-card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            z-index: 60;
+            border-color: var(--primary-color);
+        }
+        
+        /* ========== 拖曳視覺優化 (極致流暢版) - The Glow ========== */
+
+        /* 1. 基礎拖曳狀態：讓被拖著走的卡片半透明 */
+        .dragging { 
+            opacity: 0.4; 
+            transform: scale(0.95); 
+            filter: grayscale(0.5); 
+            cursor: grabbing;
+        }
+
+        /* 2. 全局性能優化：當正在拖曳時，暫停所有不必要的動畫與過渡效果 */
+        body.is-dragging * {
+            cursor: grabbing !important;
+        }
+
+        /* 關鍵：拖曳時關閉表格格子的過渡動畫，這是解決「滑手/卡頓」的關鍵！
+           讓回饋變成 0 延遲的物理反應 */
+        body.is-dragging .schedule-cell {
+            transition: none !important; 
+        }
+
+        /* 3. 目標區域樣式：光韻效果 (The Glow) */
+        .drag-over {
+            /* 優雅的徑向漸層：中心亮，向外擴散，解決深色提示框太平均的問題 */
+            background: radial-gradient(
+                circle at center, 
+                rgba(59, 130, 246, 0.25) 0%, /* 中心亮度 */
+                rgba(59, 130, 246, 0.05) 60%, /* 擴散柔和 */
+                transparent 100%
+            ) !important;
+            
+            /* 輕微的內光暈，增加層次感 */
+            box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.1) !important;
+            
+            /* 邊框不明顯，讓光暈成為主角 */
+            border: 1px double rgba(59, 130, 246, 0.4) !important;
+            
+            /* 強制 GPU 渲染背景 */
+            will-change: background;
+            z-index: 50;
+        }
+
+        /* 當拖曳目標是衝突區域時的特殊光韻 (紅色) */
+        .drag-over.bg-conflict {
+            background: radial-gradient(
+                circle at center, 
+                rgba(239, 68, 68, 0.2) 0%, 
+                rgba(239, 68, 68, 0.05) 60%, 
+                transparent 100%
+            ) !important;
+            box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.1) !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+        }
+        
+        /* 移除舊有的拖曳目標樣式 */
+        .drag-target { box-shadow: none !important; transition: none !important; }
+
+        .card-individual { background-color: var(--card-ind-bg); color: var(--card-ind-text); }
+        .card-group { background-color: var(--card-grp-bg); color: var(--card-grp-text); border-color: rgba(16, 185, 129, 0.2); }
+        .card-practice { background-color: var(--card-prc-bg); color: var(--card-prc-text); border-color: rgba(249, 115, 22, 0.2); }
+        .card-other { background-color: var(--card-oth-bg); color: var(--card-oth-text); border-color: rgba(75, 85, 99, 0.2); }
+        
+        /* 衝突視覺標記 */
+        .bg-conflict {
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239, 68, 68, 0.08) 8px, rgba(239, 68, 68, 0.08) 16px);
+            background-color: var(--color-warning-soft); 
+        }
+        .schedule-card.conflict {
+            border: 2px solid var(--color-warning-text);
+            background-color: var(--color-warning-soft);
+            color: var(--color-warning-text) !important;
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .filter-btn.active {
+            background-color: var(--btn-active-bg);
+            color: var(--btn-active-text);
+            backdrop-filter: var(--btn-backdrop);
+            -webkit-backdrop-filter: var(--btn-backdrop);
+            border: var(--btn-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 列表項目刪除平滑閉合動畫 */
+        .slide-up-exit {
+            transition: opacity 0.3s ease-out, height 0.4s ease-out, padding 0.4s ease-out, margin 0.4s ease-out;
+            opacity: 0 !important;
+            height: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            overflow: hidden;
+        }
+
+        /* 模態框彈簧動畫 */
+        @keyframes modal-spring-in {
+            0% { transform: translateY(50px) scale(0.8); opacity: 0; }
+            80% { transform: translateY(-5px) scale(1.02); opacity: 1; }
+            100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes modal-spring-out {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0; }
+        }
+
+        .modal-animated { animation: modal-spring-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .modal-exit { animation: modal-spring-out 0.2s ease-in forwards; }
+
+        /* 底部導航 */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--bg-panel); border-top: 1px solid var(--border-color);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 100; display: flex; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem; color: var(--text-sub); font-size: 0.75rem; transition: color 0.2s;
+        }
+        .bottom-nav-item i.fas { display: none; }
+        .bottom-nav-item i.far { display: block; }
+        .bottom-nav-item.active { color: var(--primary-color); }
+        .bottom-nav-item.active i.fas { display: block; }
+        .bottom-nav-item.active i.far { display: none; }
+
+        /* ... (其餘不變的 CSS 樣式) ... */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-enter { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes float { 0% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(30px, 50px) rotate(10deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
+        
+        .blob-bg { position: absolute; filter: blur(80px); z-index: -1; opacity: 0.6; transition: all 1s ease; animation: float 10s infinite ease-in-out; }
+        .theme-btn { transition: transform 0.2s; border: 2px solid transparent; }
+        .theme-btn:hover { transform: scale(1.1); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .theme-btn.active { border-color: var(--text-main); transform: scale(1.15); }
+        
+        /* Checkbox style */
+        .form-checkbox {
+            appearance: none; background-color: #fff; margin: 0; font: inherit; color: currentColor; width: 1.15em; height: 1.15em; border: 0.15em solid currentColor; border-radius: 0.15em; display: grid; place-content: center;
+        }
+        .form-checkbox::before {
+            content: ""; width: 0.65em; height: 0.65em; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em var(--primary-color); transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .form-checkbox:checked::before { transform: scale(1); }
+        
+        /* Undo/Redo Button Styles */
+        .action-btn { width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: var(--text-sub); background-color: var(--bg-input); }
+        .action-btn:hover:not(:disabled) { background-color: var(--hover-bg); color: var(--primary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .action-btn:active:not(:disabled) { transform: scale(0.98); }
+        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        /* 資料庫表格頭部樣式 */
+        #st-panel-class th.db-sticky-header,
+        #st-panel-faculty th.db-sticky-header {
+             position: sticky; top: 0; z-index: 55; background-color: var(--bg-header) !important; opacity: 1 !important; border-bottom: 1px solid var(--border-color); border-right: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        }
+        
+        /* ========== 搜尋提示優化 ========== */
+        /* 讓 Placeholder 更顯眼 */
+        #search-input::placeholder {
+            color: var(--text-sub);
+            opacity: 0.7; /* 提高不透明度 */
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+
+        /* ========== 列印/PDF 匯出優化 ========== */
+        @media print {
+            header, .bottom-nav, #dropZone, #toast-container, .blob-bg,
+            .filter-btn, .space-x-1, .space-x-2, .space-x-3, .space-x-5, .space-x-4,
+            .action-btn, .theme-btn, #view-schedule > div:first-child,
+            [class*="modal-"], [onclick*="switchTab"], .no-scrollbar,
+            #view-search h2, #view-search .flex-wrap, #view-search .group, #search-suggestions {
+                display: none !important;
+            }
+
+            body, main, #view-schedule, #view-search {
+                height: auto !important; min-height: 100vh; margin: 0 !important; padding: 0 !important; overflow: visible !important;
+            }
+            
+            .glass-panel, .flex-1 {
+                background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: none !important; border: none !important;
+            }
+            
+            .print-title {
+                display: block !important; text-align: center; margin: 0.8cm 0 0.2cm 0; font-size: 16pt; font-weight: bold; color: #333;
+            }
+            .print-subtitle {
+                 display: block !important; text-align: center; margin-bottom: 0.8cm; font-size: 12pt; color: #666;
+            }
+
+            table {
+                page-break-after: auto; page-break-inside: avoid; width: 100% !important; table-layout: fixed; border-collapse: collapse; background-color: white !important; font-size: 9pt;
+            }
+            thead { display: table-header-group; }
+            tr, img { page-break-inside: avoid; }
+            
+            .schedule-corner, .schedule-row-header, .schedule-col-header, .schedule-time-col, .db-sticky-header {
+                position: static !important; background-color: #f0f0f0 !important; color: black !important; box-shadow: none !important; border: 1px solid #ccc !important;
+            }
+            
+            #search-results .schedule-cell {
+                padding: 1px !important; min-width: 0 !important; width: 20% !important; height: auto !important; 
+            }
+            #search-results .schedule-time-col { width: 10% !important; }
+            
+            .schedule-card {
+                box-shadow: none !important; border: 1px solid #ccc !important; transform: none !important; background-color: white !important; color: black !important; padding: 2px 3px; margin: 1px; font-size: 8pt; line-height: 1.1; height: auto; min-height: 25px; overflow: hidden;
+            }
+            .schedule-card > div { white-space: normal; overflow: visible; text-overflow: clip; }
+
+            .card-group { background-color: #e6ffe6 !important; } 
+            .card-practice { background-color: #fff9e6 !important; } 
+
+            .schedule-cell button { display: none !important; }
+
+            .bg-conflict { background-image: none !important; background-color: white !important; }
+            .schedule-card.conflict { border-color: #ef4444 !important; background-color: #ffeaea !important; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary-color)',
+                        'student-major': 'var(--student-major-color)',
+                        'student-group': 'var(--student-group-color)',
+                        'student-ability': 'var(--student-ability-color)',
+                        'warning-soft': 'var(--color-warning-soft)',
+                        'warning-text': 'var(--color-warning-text)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden selection:bg-primary selection:text-white relative" x-data="{ currentTheme: 'white' }">
+
+    <!-- 背景裝飾 -->
+    <div class="blob-bg w-96 h-96 rounded-full bg-blue-300/30 top-0 left-0" style="background-color: var(--accent-blob);"></div>
+    <div class="blob-bg w-80 h-80 rounded-full bg-purple-300/30 bottom-0 right-0 animation-delay-2000" style="background-color: var(--accent-blob); animation-delay: -2s;"></div>
+
+    <!-- 拖曳遮罩 (檔案匯入) -->
+    <div id="dropZone" class="hidden fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center border-4 border-primary border-dashed m-6 rounded-[2rem]">
+        <div class="text-center bg-white p-10 rounded-3xl shadow-2xl w-11/12 max-w-md">
+            <i class="fas fa-cloud-upload-alt text-7xl text-blue-500 mb-6 animate-bounce"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">釋放以匯入檔案</h2>
+            <p class="text-slate-500 text-sm">支援 .json 備份檔或 .csv 資料庫檔案</p>
+        </div>
+    </div>
+
+    <!-- 頂部導航 -->
+    <header class="glass-panel z-40 px-4 md:px-8 py-3 md:py-4 flex justify-between items-center shrink-0 m-2 md:m-4 rounded-xl md:rounded-2xl">
+        <div class="flex items-center space-x-3 md:space-x-5">
+            <div class="w-8 h-8 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg md:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 transform rotate-3 shrink-0">
+                <i class="fas fa-music text-sm md:text-xl"></i>
+            </div>
+            <div>
+                <div class="flex items-baseline gap-2">
+                    <h1 class="text-lg md:text-2xl font-bold tracking-tight leading-tight" style="color: var(--text-main)">音樂排課系統</h1>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-bold hidden md:inline-block">v2.2.0</span>
+                </div>
+                <p class="text-[10px] md:text-xs font-medium tracking-widest uppercase" style="color: var(--text-sub); opacity: 0.6;">Niaosong Music Schedule Lite</p>
+            </div>
+        </div>
+        
+        <!-- Desktop Nav -->
+        <nav class="hidden md:flex p-1.5 rounded-2xl" style="background-color: var(--bg-input);">
+            <button onclick="switchTab('schedule')" id="btn-schedule" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm interactive-btn">排課總表</button>
+            <button onclick="switchTab('search')" id="btn-search" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all interactive-btn">查詢系統</button>
+            <button onclick="switchTab('settings')" id="btn-settings" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all interactive-btn">資料庫設定</button>
+        </nav>
+
+        <div class="flex items-center space-x-2 md:space-x-3">
+            
+            <!-- Undo/Redo Buttons -->
+            <div class="flex items-center space-x-1 mr-2 md:mr-4 bg-gray-100/50 p-1 rounded-xl border border-transparent hover:border-gray-200 transition-colors">
+                <button onclick="undo()" id="btn-undo" class="action-btn interactive-btn" title="上一步 (Ctrl+Z)" disabled>
+                    <i class="fas fa-undo text-xs md:text-sm"></i>
+                </button>
+                <button onclick="redo()" id="btn-redo" class="action-btn interactive-btn" title="下一步 (Ctrl+Y)" disabled>
+                    <i class="fas fa-redo text-xs md:text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Theme Selector -->
+            <div class="group relative h-9 w-9 md:h-11 md:w-11">
+                <button class="w-full h-full rounded-full hover:opacity-80 flex items-center justify-center transition-all shadow-sm hover:shadow-md interactive-btn" style="background-color: var(--bg-input); color: var(--text-sub);">
+                    <i class="fas fa-palette text-sm md:text-base"></i>
+                </button>
+                <div class="absolute right-0 top-full pt-2 hidden group-hover:block z-50">
+                    <div class="p-3 backdrop-blur-xl rounded-2xl shadow-xl border grid grid-cols-5 gap-2 w-max" style="background-color: var(--bg-panel); border-color: var(--border-color);">
+                        <button onclick="setTheme('black')" class="theme-btn w-8 h-8 rounded-full bg-[#3E4042] shadow-sm border border-white/20" title="深太空灰"></button>
+                        <button onclick="setTheme('white')" class="theme-btn w-8 h-8 rounded-full bg-[#F2F3F5] shadow-sm border border-slate-300" title="星光白"></button>
+                        <button onclick="setTheme('green')" class="theme-btn w-8 h-8 rounded-full bg-[#A7C39E] shadow-sm" title="湖水綠"></button>
+                        <button onclick="setTheme('blue')" class="theme-btn w-8 h-8 rounded-full bg-[#93B3DA] shadow-sm" title="湛海藍"></button>
+                        <button onclick="setTheme('pink')" class="theme-btn w-8 h-8 rounded-full bg-[#E2CDE6] shadow-sm" title="薰衣草紫"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="h-6 w-px mx-1" style="background-color: var(--border-color);"></div>
+
+            <!-- I/O Buttons (整合為單一按鈕) -->
+            <div class="group relative h-9 w-9 md:h-11 md:w-11">
+                <button class="w-full h-full rounded-full hover:opacity-80 flex items-center justify-center transition-all shadow-sm hover:shadow-md interactive-btn" style="background-color: var(--bg-input); color: var(--text-sub);" title="備份/還原/匯入">
+                    <i class="fas fa-exchange-alt text-sm md:text-base"></i>
+                </button>
+                <div class="absolute right-0 top-full pt-2 hidden group-hover:block z-50">
+                    <div class="p-3 backdrop-blur-xl rounded-2xl shadow-xl border flex flex-col space-y-2 w-max" style="background-color: var(--bg-panel); border-color: var(--border-color);">
+                        <button onclick="exportData()" class="flex items-center px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors interactive-btn">
+                            <i class="fas fa-download w-5 mr-3 text-blue-500"></i> 備份整個系統 (.json)
+                        </button>
+                        <button onclick="document.getElementById('fileInput').click()" class="flex items-center px-4 py-2 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors interactive-btn">
+                            <i class="fas fa-upload w-5 mr-3 text-emerald-500"></i> 還原/匯入 (.json/.csv)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <input type="file" id="fileInput" class="hidden" accept=".json, .csv" onchange="handleFileSelect(event)">
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="flex-1 overflow-hidden relative px-2 md:px-4 pb-20 md:pb-4">
+        
+        <!-- 1. 排課總表視圖 -->
+        <div id="view-schedule" class="h-full w-full overflow-hidden flex flex-col p-1 md:p-2">
+            <!-- 篩選工具列 -->
+            <div class="shrink-0 mb-2 md:mb-3 px-1 md:px-2 flex flex-row items-center gap-2 md:gap-4 overflow-x-auto no-scrollbar pb-1">
+                
+                <!-- 樓層篩選 (可收納二級菜單) -->
+                <div id="floor-filter-container" class="relative group shrink-0">
+                    <button id="btn-floor-toggle" onclick="toggleFloorMenu(event)" class="px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-sm font-bold shadow-sm interactive-btn flex items-center space-x-2" style="background-color: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color);" title="篩選樓層">
+                        <i class="fas fa-layer-group text-primary"></i>
+                        <span id="current-floor-label" class="text-[10px] md:text-xs font-bold" style="color: var(--text-sub);">全校</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform duration-200"></i>
+                    </button>
+
+                    <div id="floor-dropdown" class="absolute left-0 top-full mt-2 hidden z-50 min-w-[120px]">
+                        <div class="p-2 rounded-xl shadow-xl border flex flex-col space-y-1" style="background-color: var(--bg-panel); border-color: var(--border-color);">
+                            <button onclick="selectFloorFilter('all', event)" class="floor-menu-item flex items-center px-4 py-2 rounded-lg text-sm font-bold text-primary hover:bg-gray-100/50 transition-colors interactive-btn" data-floor="all">
+                                <i class="fas fa-globe-asia w-4 mr-2"></i> 全校
+                            </button>
+                            <button onclick="selectFloorFilter('1F', event)" class="floor-menu-item flex items-center px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100/50 transition-colors interactive-btn" data-floor="1F">
+                                <i class="fas fa-map-marker-alt w-4 mr-2"></i> 1F
+                            </button>
+                            <button onclick="selectFloorFilter('2F', event)" class="floor-menu-item flex items-center px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100/50 transition-colors interactive-btn" data-floor="2F">
+                                <i class="fas fa-map-marker-alt w-4 mr-2"></i> 2F
+                            </button>
+                            <button onclick="selectFloorFilter('3F', event)" class="floor-menu-item flex items-center px-4 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100/50 transition-colors interactive-btn" data-floor="3F">
+                                <i class="fas fa-map-marker-alt w-4 mr-2"></i> 3F
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 星期篩選 -->
+                <div class="flex items-center space-x-1 md:space-x-2 p-1 md:p-1.5 rounded-xl backdrop-blur-sm shadow-sm border shrink-0" style="background-color: var(--bg-panel); border-color: var(--border-color);">
+                    <span class="text-[10px] md:text-xs font-bold px-1 md:px-2 hidden sm:inline" style="color: var(--text-sub); opacity: 0.6;">星期</span>
+                    <button onclick="setDayFilter('Mon')" class="filter-btn px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold active interactive-btn" style="color: var(--text-main);" id="filter-day-Mon">一</button>
+                    <button onclick="setDayFilter('Tue')" class="filter-btn px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold interactive-btn" style="color: var(--text-main);" id="filter-day-Tue">二</button>
+                    <button onclick="setDayFilter('Wed')" class="filter-btn px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold interactive-btn" style="color: var(--text-main);" id="filter-day-Wed">三</button>
+                    <button onclick="setDayFilter('Thu')" class="filter-btn px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold interactive-btn" style="color: var(--text-main);" id="filter-day-Thu">四</button>
+                    <button onclick="setDayFilter('Fri')" class="filter-btn px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold interactive-btn" style="color: var(--text-main);" id="filter-day-Fri">五</button>
+                </div>
+
+                <!-- 顯示篩選 -->
+                <div class="flex items-center space-x-2 md:space-x-3 p-1 md:p-1.5 px-2 md:px-4 rounded-xl backdrop-blur-sm shadow-sm border shrink-0" style="background-color: var(--bg-panel); border-color: var(--border-color);">
+                    <label class="flex items-center cursor-pointer space-x-1 select-none">
+                        <input type="checkbox" checked onchange="toggleTypeFilter('Individual')" class="form-checkbox h-3 w-3 md:h-4 md:w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 interactive-btn">
+                        <span class="text-[10px] md:text-xs font-bold" style="color: var(--text-main);">個別</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer space-x-1 select-none">
+                        <input type="checkbox" checked onchange="toggleTypeFilter('Group')" class="form-checkbox h-3 w-3 md:h-4 md:w-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 interactive-btn">
+                        <span class="text-[10px] md:text-xs font-bold" style="color: var(--text-main);">團體</span>
+                    </label>
+                    <label class="flex items-center cursor-pointer space-x-1 select-none">
+                        <input type="checkbox" checked onchange="toggleTypeFilter('Practice')" class="form-checkbox h-3 w-3 md:h-4 md:w-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500 interactive-btn">
+                        <span class="text-[10px] md:text-xs font-bold" style="color: var(--text-main);">練琴</span>
+                    </label>
+                    <!-- 新增 'Other' 類型篩選 -->
+                    <label class="flex items-center cursor-pointer space-x-1 select-none">
+                        <input type="checkbox" checked onchange="toggleTypeFilter('Other')" class="form-checkbox h-3 w-3 md:h-4 md:w-4 rounded border-gray-300 focus:ring-gray-500 interactive-btn" style="color: var(--card-oth-text);" id="filter-type-other">
+                        <span class="text-[10px] md:text-xs font-bold" style="color: var(--text-main);">其他</span>
+                    </label>
+                    <!-- 隱藏空教室選項 -->
+                    <label class="flex items-center cursor-pointer space-x-1 select-none whitespace-nowrap">
+                        <input type="checkbox" onchange="toggleHideEmptyRooms()" class="form-checkbox h-3 w-3 md:h-4 md:w-4 text-primary rounded border-gray-300 focus:ring-blue-500 interactive-btn" id="filter-hide-empty-rooms">
+                        <span class="text-[10px] md:text-xs font-bold" style="color: var(--text-main);">隱藏空教室</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-auto glass-panel rounded-xl md:rounded-3xl p-0.5 md:p-1 shadow-inner relative">
+                <div class="h-full w-full overflow-auto rounded-[0.8rem] md:rounded-[1.2rem]" style="background-color: var(--bg-panel);">
+                    <table class="w-full border-collapse">
+                        <thead id="schedule-header-group">
+                            <!-- Header generated by JS -->
+                        </thead>
+                        <tbody id="schedule-body">
+                            <!-- Body generated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 查詢視圖 -->
+        <div id="view-search" class="hidden h-full overflow-auto p-4">
+            <div class="max-w-5xl mx-auto space-y-8 py-4 md:py-8">
+                <div class="text-center space-y-4 md:space-y-6">
+                    <h2 class="text-2xl md:text-4xl font-bold" style="color: var(--text-main)">查詢系統</h2>
+                    <div class="flex justify-center space-x-2 mb-4 flex-wrap">
+                        <button onclick="setSearchViewMode('grid')" id="search-mode-grid" class="px-4 py-2 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 interactive-btn">週課表</button>
+                        <button onclick="setSearchViewMode('list')" id="search-mode-list" class="px-4 py-2 rounded-xl text-sm font-bold shadow-md bg-white text-blue-600 interactive-btn">列表清單</button>
+                        <button onclick="printSearchResults()" id="search-export-btn" class="px-4 py-2 rounded-xl text-sm font-bold text-primary hover:bg-primary/10 disabled:opacity-50 transition-colors interactive-btn" title="列印當前查詢結果 (Ctrl+P/Cmd+P)">匯出清單/課表</button>
+                    </div>
+                    <div class="relative max-w-2xl mx-auto group">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-primary to-blue-300 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                        <div class="relative flex items-center rounded-2xl shadow-xl custom-input">
+                            <i class="fas fa-search absolute left-4 md:left-6 text-lg md:text-xl opacity-50"></i>
+                            <!-- 搜尋輸入框 -->
+                            <input type="text" id="search-input" placeholder="全局搜尋: 學生、老師、教室、科目..." 
+                                class="w-full pl-12 md:pl-16 pr-6 py-4 md:py-5 rounded-2xl border-0 bg-transparent text-base md:text-xl outline-none placeholder:opacity-50"
+                                style="color: var(--text-main)"
+                                oninput="handleSearch(this.value)">
+                        </div>
+                        
+                        <!-- 智慧推薦/即時建議區域 -->
+                        <div id="search-suggestions" class="glass-panel p-4 rounded-2xl hidden border shadow-md transition-all duration-300 absolute top-full mt-2 w-full z-50" 
+                             style="border-color: var(--border-color); background-color: var(--bg-panel);">
+                        </div>
+                        
+                    </div>
+                </div>
+                <!-- 匯出時用於顯示標題 -->
+                <h3 class="print-title hidden" id="search-print-title"></h3>
+                <h4 class="print-subtitle hidden" id="search-print-subtitle"></h4>
+                
+                <!-- 智慧推薦/即時建議區域 (位置已調整到搜索框下方) -->
+                <div id="search-results" class="pb-10"></div>
+            </div>
+        </div>
+
+        <!-- 3. 設定視圖 -->
+        <div id="view-settings" class="hidden h-full overflow-auto p-2">
+            <div class="max-w-6xl mx-auto glass-panel rounded-3xl overflow-hidden flex flex-col h-full shadow-xl">
+                <div class="flex border-b p-2" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                    <button onclick="switchSettingTab('class')" id="st-btn-class" class="flex-1 py-3 md:py-4 rounded-xl text-xs md:text-sm font-bold transition-all interactive-btn">學生總表</button>
+                    <button onclick="switchSettingTab('faculty')" id="st-btn-faculty" class="flex-1 py-3 md:py-4 rounded-xl text-xs md:text-sm font-bold transition-all interactive-btn">師資管理</button>
+                </div>
+                
+                <div class="flex-1 overflow-hidden p-2 md:p-8 relative">
+                    <!-- 學生總資料庫 -->
+                    <div id="st-panel-class" class="h-full flex flex-col space-y-4 md:space-y-6">
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-2">
+                            <h3 class="text-lg md:text-xl font-bold" style="color: var(--text-main)">學生名冊</h3>
+                            <div class="flex-1 w-full md:max-w-md mx-2">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                    <input type="text" oninput="filterStudents(this.value)" placeholder="搜尋姓名、學號/班級、樂器、樂團..." class="w-full pl-9 p-2 rounded-xl custom-input text-sm shadow-sm">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 overflow-x-auto w-full md:w-auto items-center">
+                                <div class="flex justify-center space-x-1 p-1 rounded-xl bg-gray-100/50 shrink-0">
+                                    <button onclick="setStudentViewMode('card')" id="student-mode-card" class="px-3 py-1 rounded-lg text-sm font-bold text-gray-500 hover:bg-white/70 interactive-btn" title="卡片檢視"><i class="fas fa-grip-horizontal"></i></button>
+                                    <button onclick="setStudentViewMode('list')" id="student-mode-list" class="px-3 py-1 rounded-lg text-sm font-bold text-primary bg-white/70 shadow interactive-btn" title="列表檢視"><i class="fas fa-list-ul"></i></button>
+                                </div>
+                                <label class="flex items-center cursor-pointer space-x-1 select-none whitespace-nowrap text-xs md:text-sm font-bold" style="color: var(--text-sub); opacity: 0.6;">
+                                    <input type="checkbox" onchange="toggleSelectAll(this)" class="form-checkbox text-primary interactive-btn">
+                                    <span>全選</span>
+                                </label>
+                                <button onclick="openBatchEditModal()" class="whitespace-nowrap bg-slate-500 hover:bg-slate-600 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-tasks mr-1"></i>批量修改</button>
+                                <button onclick="exportStudentCSV()" class="whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-file-export mr-1"></i>匯出</button>
+                                <button onclick="openCSVImportModal('student')" class="whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-file-csv mr-1"></i>匯入</button>
+                                <button onclick="openClassModal()" class="whitespace-nowrap bg-primary hover:opacity-90 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-plus mr-1"></i>新增</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 數據顯示區域容器 -->
+                        <div class="flex-1 overflow-auto rounded-2xl border shadow-inner custom-input p-0 md:p-4" style="border-color: var(--border-color);">
+                            <!-- 卡片檢視 -->
+                            <div id="class-card-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 pb-4">
+                                <!-- Cards injected via JS -->
+                            </div>
+                            <!-- 列表檢視 (New Container) -->
+                            <div id="class-list-container" class="hidden h-full overflow-auto p-0">
+                                <!-- Table injected via JS -->
+                            </div>
+                            <div id="empty-class-message" class="hidden text-center py-10 text-gray-500">請透過匯入或新增按鈕載入學生資料。</div>
+                        </div>
+                    </div>
+
+                    <!-- 師資管理 -->
+                    <div id="st-panel-faculty" class="h-full flex flex-col space-y-4 md:space-y-6">
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-2">
+                            <h3 class="text-lg md:text-xl font-bold" style="color: var(--text-main)">師資資料庫</h3>
+                            <div class="flex-1 w-full md:max-w-md mx-2">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                    <input type="text" oninput="filterFaculty(this.value)" placeholder="搜尋姓名、授課樂器..." class="w-full pl-9 p-2 rounded-xl custom-input text-sm shadow-sm">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 overflow-x-auto w-full md:w-auto items-center">
+                                <div class="flex justify-center space-x-1 p-1 rounded-xl bg-gray-100/50 shrink-0">
+                                    <button onclick="setFacultyViewMode('card')" id="faculty-mode-card" class="px-3 py-1 rounded-lg text-sm font-bold text-gray-500 hover:bg-white/70 interactive-btn" title="卡片檢視"><i class="fas fa-grip-horizontal"></i></button>
+                                    <button onclick="setFacultyViewMode('list')" id="faculty-mode-list" class="px-3 py-1 rounded-lg text-sm font-bold text-primary bg-white/70 shadow interactive-btn" title="列表檢視"><i class="fas fa-list-ul"></i></button>
+                                </div>
+                                <button onclick="exportFacultyCSV()" class="whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-file-export mr-1"></i>匯出</button>
+                                <button onclick="openCSVImportModal('faculty')" class="whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-file-csv mr-1"></i>匯入</button>
+                                <button onclick="openFacultyModal()" class="whitespace-nowrap bg-primary hover:opacity-90 text-white px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg transition-all shrink-0 interactive-btn"><i class="fas fa-plus mr-1"></i>新增</button>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-auto rounded-2xl border shadow-inner custom-input p-0 md:p-4" style="border-color: var(--border-color);">
+                            <!-- 列表檢視 (預設) -->
+                            <div id="faculty-list-container" class="h-full overflow-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="p-4 md:p-5 font-bold whitespace-nowrap db-sticky-header">職稱</th>
+                                            <th class="p-4 md:p-5 font-bold whitespace-nowrap db-sticky-header">姓名</th>
+                                            <th class="p-4 md:p-5 font-bold db-sticky-header">授課科目</th>
+                                            <th class="p-4 md:p-5 font-bold db-sticky-header">學歷</th>
+                                            <th class="p-4 md:p-5 font-bold w-24 whitespace-nowrap db-sticky-header">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="faculty-table-body" class="divide-y" style="border-color: var(--border-color);"></tbody>
+                                </table>
+                            </div>
+                            <!-- 卡片檢視 -->
+                            <div id="faculty-card-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4 p-4">
+                                <!-- Cards injected via JS -->
+                            </div>
+                            <div id="empty-faculty-message" class="hidden text-center py-10 text-gray-500">請透過匯入或新增按鈕載入師資資料。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="bottom-nav md:hidden">
+        <button onclick="switchTab('schedule')" id="mobile-btn-schedule" class="bottom-nav-item active interactive-btn">
+            <i class="fas fa-calendar-alt"></i>
+            <i class="far fa-calendar-alt"></i>
+            <span>排課總表</span>
+        </button>
+        <button onclick="switchTab('search')" id="mobile-btn-search" class="bottom-nav-item interactive-btn">
+            <i class="fas fa-search"></i>
+            <i class="far fa-search"></i>
+            <span>查詢系統</span>
+        </button>
+        <button onclick="switchTab('settings')" id="mobile-btn-settings" class="bottom-nav-item interactive-btn">
+            <i class="fas fa-database"></i>
+            <i class="far fa-database"></i>
+            <span>資料庫</span>
+        </button>
+    </div>
+
+    <!-- 編輯課程 Modal -->
+    <div id="modal-course" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4 md:p-0">
+        <div class="glass-panel rounded-2xl md:rounded-[2rem] shadow-2xl w-full max-w-md transform transition-all overflow-hidden border max-h-[90vh] overflow-y-auto" style="border-color: var(--border-color);">
+            <div class="px-6 md:px-8 py-4 md:py-6 border-b flex justify-between items-center sticky top-0 z-10" style="background-color: var(--bg-header); border-color: var(--border-color);">
+                <h3 id="modal-title" class="font-bold text-lg md:text-xl" style="color: var(--text-main);">編輯課程</h3>
+                <button onclick="closeModal('modal-course')" class="w-8 h-8 rounded-full hover:opacity-70 flex items-center justify-center transition-colors interactive-btn" style="color: var(--text-sub);"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 md:p-8 space-y-4 md:space-y-5" style="background-color: var(--bg-panel);">
+                <input type="hidden" id="edit-id">
+                
+                <div class="grid grid-cols-2 gap-4 md:gap-5">
+                    <div class="group">
+                        <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider" style="color: var(--text-sub); opacity: 0.6;">星期</label>
+                        <div class="relative">
+                            <select id="edit-day" class="w-full p-3 rounded-xl custom-input text-sm appearance-none font-medium"></select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style="color: var(--text-sub);"></i>
+                        </div>
+                    </div>
+                    <div class="group">
+                        <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider" style="color: var(--text-sub); opacity: 0.6;">時段</label>
+                        <div class="relative">
+                            <select id="edit-start" class="w-full p-3 rounded-xl custom-input text-sm appearance-none font-medium tabular-nums"></select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style="color: var(--text-sub);"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider" style="color: var(--text-sub); opacity: 0.6;">教室</label>
+                    <div class="relative">
+                        <select id="edit-room" class="w-full p-3 rounded-xl custom-input text-sm appearance-none font-medium"></select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style="color: var(--text-sub);"></i>
+                    </div>
+                </div>
+
+                <div class="p-4 md:p-5 rounded-2xl border space-y-4" style="background-color: var(--hover-bg); border-color: var(--border-color);">
+                    <div>
+                        <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider" style="color: var(--text-sub); opacity: 0.6;">課程類型</label>
+                        <div class="flex rounded-xl p-1 shadow-sm border custom-input">
+                            <select id="edit-type" onchange="handleTypeChange()" class="w-full bg-transparent text-sm font-bold p-2 outline-none text-center" style="color: var(--text-main);">
+                                <option value="Individual">個別課</option>
+                                <option value="Group">團體課</option>
+                                <option value="Practice">練琴</option>
+                                <option value="Other">其他/外借</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="relative">
+                            <label class="block text-xs font-bold mb-1.5 flex justify-between" style="color: var(--text-sub); opacity: 0.6;">
+                                <span>科目</span>
+                            </label>
+                            <input list="subject-list" id="edit-subject" class="w-full p-3 rounded-xl custom-input text-sm" placeholder="選擇或輸入">
+                            <datalist id="subject-list"></datalist>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5" style="color: var(--text-sub); opacity: 0.6;">指導老師</label>
+                            <div class="relative">
+                                <input list="teacher-list" id="edit-teacher" class="w-full p-3 rounded-xl custom-input text-sm" placeholder="選擇或輸入">
+                                <datalist id="teacher-list"></datalist>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-xs font-bold" id="label-student" style="color: var(--text-sub); opacity: 0.6;">學生姓名 / 原班級</label>
+                            <div id="group-filter-type" class="hidden text-[10px] rounded p-1 flex" style="background-color: var(--border-color);">
+                                <button onclick="setGroupFilter('class')" id="gf-class" class="px-2 py-0.5 rounded shadow interactive-btn" style="background-color: var(--bg-input); color: var(--text-main);">原班級/多選</button>
+                                <button onclick="setGroupFilter('tag')" id="gf-tag" class="px-2 py-0.5 rounded interactive-btn" style="color: var(--text-sub);">分組標籤</button>
+                            </div>
+                        </div>
+                        
+                        <div class="relative">
+                             <input type="text" id="edit-student" list="student-list" class="w-full p-3 rounded-xl custom-input text-sm" placeholder="輸入姓名...">
+                             <select id="edit-group-tag" class="hidden w-full p-3 rounded-xl custom-input text-sm">
+                                <option value="">選擇分組條件...</option>
+                             </select>
+                             <div id="group-grade-selector" class="hidden p-2 rounded-xl custom-input text-sm grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                             </div>
+                        </div>
+                        
+                        <datalist id="student-list"></datalist>
+                        <div id="group-members-preview" class="hidden mt-2 text-xs p-2 rounded-lg border" style="color: var(--text-sub); opacity: 0.6; background-color: var(--bg-input); border-color: var(--border-color);"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 md:px-8 py-4 md:py-6 border-t flex justify-between sticky bottom-0 z-10" style="background-color: var(--bg-header); border-color: var(--border-color);">
+                <div class="flex space-x-2">
+                    <button type="button" onclick="deleteCourse()" class="text-red-500 hover:bg-red-50/10 px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-colors interactive-btn" id="btn-delete">刪除</button>
+                    <button type="button" onclick="copyCourse()" class="hover:bg-white/10 px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-colors interactive-btn" style="color: var(--text-sub);" id="btn-copy">複製</button>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeModal('modal-course')" class="px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold hover:bg-white/10 transition-colors interactive-btn" style="color: var(--text-sub);">取消</button>
+                    <button onclick="saveCourse(false)" class="px-6 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5 interactive-btn">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conflict Warning Modal -->
+    <div id="modal-conflict-warning" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-100 modal-animated modal-exit-placeholder">
+            <div class="text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto">
+                    <i class="fas fa-exclamation-triangle text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold" style="color: var(--color-warning-text);">偵測到排課衝突！</h3>
+                <div id="conflict-details" class="text-sm text-left p-3 rounded-xl border border-red-300 max-h-40 overflow-y-auto font-medium" style="background-color: var(--color-warning-soft); color: var(--color-warning-text);">
+                    <!-- Conflict details injected here -->
+                </div>
+                <p class="text-sm font-bold mt-4" style="color: var(--text-sub); opacity: 0.6;">您確定要強制儲存這筆會造成衝突的課程嗎？</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-6">
+                <button onclick="closeModal('modal-conflict-warning');" class="py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors interactive-btn">取消變更</button>
+                <button onclick="saveCourse(true)" class="py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all interactive-btn">強制儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Edit Modal -->
+    <div id="modal-batch-edit" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4 md:p-0">
+        <div class="glass-panel rounded-2xl md:rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden modal-animated modal-exit-placeholder">
+            <div class="px-6 py-4 border-b flex justify-between items-center" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                <h3 class="font-bold text-lg" style="color: var(--text-main);">批量修改混班課程</h3>
+                <button onclick="closeModal('modal-batch-edit')" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center interactive-btn" style="color: var(--text-sub);"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4" style="background-color: var(--bg-panel);">
+                <div class="text-sm font-bold mb-2 text-primary" id="batch-count-display">已選擇 0 位學生</div>
+                <div>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">要修改的欄位</label>
+                    <select id="batch-field" class="w-full p-2 rounded custom-input text-sm">
+                        <option value="orchestra">樂團</option>
+                        <option value="chamber">室內樂</option>
+                        <option value="theory">樂理</option>
+                        <option value="sight">視唱</option>
+                        <option value="rhythm">節奏</option>
+                        <option value="major">主修</option>
+                        <option value="minor">副修</option>
+                        <option value="other">其他課程 (Tags)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">新數值</label>
+                    <input id="batch-value" type="text" class="w-full p-2 rounded custom-input text-sm" placeholder="輸入新的分組或內容...">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t flex justify-end space-x-3" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                 <button onclick="closeModal('modal-batch-edit')" class="px-4 py-2 rounded-xl text-xs font-bold hover:bg-white/10 transition-colors interactive-btn" style="color: var(--text-sub);">取消</button>
+                 <button onclick="saveBatchEdit()" class="px-6 py-2 rounded-xl text-xs font-bold bg-slate-500 text-white hover:bg-slate-600 shadow-lg transition-all interactive-btn">確認修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Import Modal -->
+    <div id="modal-csv" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-md p-4 md:p-0">
+        <div class="glass-panel rounded-2xl md:rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden modal-animated modal-exit-placeholder">
+            <div class="px-6 md:px-8 py-4 md:py-6 border-b flex justify-between items-center" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                <h3 class="font-bold text-lg md:text-xl" style="color: var(--text-main);" id="csv-modal-title">批次匯入資料</h3>
+                <button onclick="closeModal('modal-csv')" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center interactive-btn" style="color: var(--text-sub);"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 md:p-8 space-y-4" style="background-color: var(--bg-panel);">
+                <p class="text-sm" style="color: var(--text-sub); opacity: 0.6;" id="csv-modal-desc">請將 Excel/CSV 內容貼入下方</p>
+                <textarea id="csv-input" rows="10" class="w-full p-4 rounded-xl custom-input font-mono text-xs" placeholder="請貼上 CSV 內容 (建議使用 Tab 或分號分隔欄位以避免內容中的逗號造成錯誤)..."></textarea>
+            </div>
+            <div class="px-6 md:px-8 py-4 md:py-6 border-t flex justify-end" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                <button onclick="processCSVImport()" class="px-6 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg transition-all interactive-btn">開始解析並匯入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 簡易 DB Modal -->
+    <div id="modal-db" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4 md:p-0">
+        <div class="glass-panel rounded-2xl md:rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden modal-animated modal-exit-placeholder">
+            <div class="px-6 md:px-8 py-4 md:py-6 border-b flex justify-between items-center" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                <h3 class="font-bold text-lg md:text-xl" style="color: var(--text-main);" id="db-modal-title">編輯資料</h3>
+                <button onclick="closeModal('modal-db')" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center interactive-btn" style="color: var(--text-sub);"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="db-modal-content" class="p-6 md:p-8 space-y-4 max-h-[70vh] overflow-y-auto" style="background-color: var(--bg-panel);">
+                <!-- 動態注入內容 -->
+            </div>
+            <div class="px-6 md:px-8 py-4 md:py-6 border-t flex justify-end space-x-3" style="border-color: var(--border-color); background-color: var(--bg-header);">
+                 <button onclick="closeModal('modal-db')" class="px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold hover:bg-white/10 transition-colors interactive-btn" style="color: var(--text-sub);">取消</button>
+                 <button onclick="saveDBEntry()" class="px-6 md:px-8 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/30 transition-all transform hover:-translate-y-0.5 interactive-btn">確認儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認對話框 Modal -->
+    <div id="modal-confirm" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xs w-full p-6 transform transition-all scale-100 modal-animated modal-exit-placeholder">
+            <div class="text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">確認刪除</h3>
+                <p id="confirm-msg" class="text-sm" style="color: var(--text-sub); opacity: 0.6;">確定要刪除嗎？此動作可以透過復原按鈕取消。</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-6">
+                <button onclick="closeModal('modal-confirm')" class="py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors interactive-btn">取消</button>
+                <button id="btn-confirm-yes" class="py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all interactive-btn">確認刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-[110] flex flex-col space-y-3"></div>
+
+    <script>
+        // =========================================================================
+        // V2.2.0 核心資料庫 (Clean Version - 不含任何預設師生資料)
+        // =========================================================================
+        const defaultStudents = []; 
+        const defaultFaculty = [];
+        // =========================================================================
+        // END: 核心資料庫
+        // =========================================================================
+
+
+        // =========================================================================
+        // 1. 常量與工具函式
+        // =========================================================================
+
+        // --- 常量定義 ---
+        const generateRooms = () => {
+            const floor1 = ["合奏教室", "音樂教室", "打擊教室"];
+            const floor2_others = ["弦樂教室", "木管教室", "銅管教室", "國樂教室", "中廳"];
+            const floor2_nums = Array.from({length: 11}, (_, i) => `${201 + i}`); 
+            const floor3_others = ["3F室內樂"];
+            const floor3_nums = Array.from({length: 26}, (_, i) => `${301 + i}`); 
+            return [...floor1, ...floor2_others, ...floor2_nums, ...floor3_others, ...floor3_nums];
+        };
+        const CONSTANTS = {
+            days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+            dayMap: {'Mon': '週一', 'Tue': '週二', 'Wed': '週三', 'Thu': '週四', 'Fri': '週五'},
+            timeslots: ["08:20-09:10", "09:15-10:05", "10:10-11:00", "11:05-11:55", "12:30-13:20", "13:25-14:15", "14:20-15:10", "15:15-16:05", "16:10-17:00", "17:05-17:55", "17:55-18:45", "18:50-19:40", "19:45-20:35", "20:40-21:30"],
+            rooms: generateRooms(),
+            grades: ["國一", "國二", "國三", "高一", "高二", "高三"]
+        };
+        const THEMES = {
+            black: { from: '#1c1c1e', to: '#0a0a0a', primary: '#0a84ff', accent: '#3a3a3c', textMain: '#f2f2f7', textSub: '#8e8e93', bgPanel: 'rgba(28, 28, 30, 0.85)', bgHeader: '#1c1c1e', bgInput: '#3a3a3c', borderColor: 'rgba(255, 255, 255, 0.15)', hoverBg: 'rgba(60, 60, 67, 0.3)', cardIndBg: '#404040', cardIndText: '#f2f2f7', cardGrpBg: '#064e3b', cardGrpText: '#66c6b3', cardPrcBg: '#402c00', cardPrcText: '#ff9f4a', cardOthBg: '#3a3a3c', cardOthText: '#d1d1d6', btnActiveBg: '#0a84ff', btnActiveText: '#f2f2f7', btnBackdrop: 'none', btnBorder: 'none' },
+            white: { from: '#FFFFFF', to: '#F2F3F5', primary: '#3b82f6', accent: '#d1d5db', textMain: '#334155', textSub: '#64748b', bgPanel: 'rgba(255, 255, 255, 0.85)', bgHeader: '#ffffff', bgInput: '#ffffff', borderColor: 'rgba(226, 232, 240, 0.8)', hoverBg: 'rgba(247, 247, 247, 0.9)', cardIndBg: '#ffffff', cardIndText: '#334155', cardGrpBg: '#ecfdf5', cardGrpText: '#047857', cardPrcBg: '#fff7ed', cardPrcText: '#c2410c', cardOthBg: '#f3f4f6', cardOthText: '#4b5563', btnActiveBg: 'rgba(255, 255, 255, 0.5)', btnActiveText: '#3b82f6', btnBackdrop: 'blur(8px)', btnBorder: '1px solid rgba(255, 255, 255, 0.8)' },
+            green: { from: '#F1F8E9', to: '#A7C39E', primary: '#558B2F', accent: '#C5E1A5', textMain: '#1B5E20', textSub: '#33691E', bgPanel: 'rgba(255, 255, 255, 0.7)', bgHeader: '#F1F8E9', bgInput: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.6)', hoverBg: 'rgba(247, 247, 247, 0.9)', cardIndBg: '#ffffff', cardIndText: '#1B5E20', cardGrpBg: '#dcfce7', cardGrpText: '#14532d', cardPrcBg: '#fef3c7', cardPrcText: '#92400e', cardOthBg: '#f0fdf4', cardOthText: '#10b981', btnActiveBg: '#8BC34A', btnActiveText: '#ffffff', btnBackdrop: 'none', btnBorder: 'none' },
+            blue:  { from: '#E3F2FD', to: '#93B3DA', primary: '#1565C0', accent: '#BBDEFB', textMain: '#0D47A1', textSub: '#1976D2', bgPanel: 'rgba(255, 255, 255, 0.7)', bgHeader: '#E3F2FD', bgInput: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.6)', hoverBg: 'rgba(247, 247, 247, 0.9)', cardIndBg: '#ffffff', cardIndText: '#0D47A1', cardGrpBg: '#dbeafe', cardGrpText: '#1e3a8a', cardPrcBg: '#e0f2fe', cardPrcText: '#075985', cardOthBg: '#eff6ff', cardOthText: '#2563eb', btnActiveBg: '#42A5F5', btnActiveText: '#ffffff', btnBackdrop: 'none', btnBorder: 'none' },
+            pink:  { from: '#F3E5F5', to: '#E2CDE6', primary: '#8E24AA', accent: '#E1BEE7', textMain: '#4A148C', textSub: '#7B1FA2', bgPanel: 'rgba(255, 255, 255, 0.7)', bgHeader: '#F3E5F5', bgInput: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.6)', hoverBg: 'rgba(247, 247, 247, 0.9)', cardIndBg: '#ffffff', cardIndText: '#4A148C', cardGrpBg: '#fce7f3', cardGrpText: '#831843', cardPrcBg: '#fae8ff', cardPrcText: '#6b21a8', cardOthBg: '#f5f3ff', cardOthText: '#5b21b6', btnActiveBg: '#AB47BC', btnActiveText: '#ffffff', btnBackdrop: 'none', btnBorder: 'none' }
+        };
+
+        // --- 狀態管理 ---
+        let appState = {
+            schedule: [],
+            students: defaultStudents, 
+            faculty: defaultFaculty,
+            currentTab: 'schedule',
+            draggedCourseId: null,
+            editingId: null,
+            dbEditingType: null,
+            currentDayView: 'Mon',
+            theme: 'white', 
+            filters: { 
+                floor: 'all', 
+                types: { Individual: true, Group: true, Practice: true, Other: true },
+                hideEmptyRooms: false 
+            },
+            groupFilterMode: 'class',
+            importTarget: null,
+            searchViewMode: 'list', 
+            studentSearchQuery: '',
+            facultySearchQuery: '',
+            selectedStudentIds: new Set(),
+            facultyViewMode: 'list', 
+            studentViewMode: 'list', 
+            pendingSave: null, 
+            pendingDrop: null, 
+            lastSearchResults: [], 
+            lastSearchContext: { type: 'none', name: '' }
+        };
+        
+        // --- History System ---
+        const historyStack = [];
+        const MAX_HISTORY = 50;
+        let historyIndex = -1;
+        let searchTimeout; 
+
+        function recordHistory() {
+            if (historyIndex < historyStack.length - 1) {
+                historyStack.splice(historyIndex + 1);
+            }
+            const stateSnapshot = {
+                schedule: JSON.parse(JSON.stringify(appState.schedule)),
+                students: JSON.parse(JSON.stringify(appState.students)),
+                faculty: JSON.parse(JSON.stringify(appState.faculty)),
+                currentTab: appState.currentTab,
+                filters: JSON.parse(JSON.stringify(appState.filters)) 
+            };
+            historyStack.push(stateSnapshot);
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            } else {
+                historyIndex++;
+            }
+            updateUndoRedoUI();
+        }
+
+        function restoreState(snapshot) {
+            appState.schedule = JSON.parse(JSON.stringify(snapshot.schedule));
+            appState.students = JSON.parse(JSON.stringify(snapshot.students));
+            appState.faculty = JSON.parse(JSON.stringify(snapshot.faculty));
+            appState.currentTab = snapshot.currentTab || 'schedule'; 
+            appState.filters = snapshot.filters || { floor: 'all', types: { Individual: true, Group: true, Practice: true, Other: true }, hideEmptyRooms: false };
+            
+            requestAnimationFrame(() => {
+                renderSchedule();
+                switchTab(appState.currentTab); 
+                if(appState.currentTab === 'settings') {
+                    const isClassView = !document.getElementById('st-panel-class').classList.contains('hidden');
+                    if(isClassView) renderClassTable(); else renderFacultyTable();
+                } else if (appState.currentTab === 'search') {
+                    executeSearch(document.getElementById('search-input').value); 
+                }
+                
+                // 確保 UI 反映還原後的篩選狀態
+                const hideEmptyRoomsCheckbox = document.getElementById('filter-hide-empty-rooms');
+                if (hideEmptyRoomsCheckbox) hideEmptyRoomsCheckbox.checked = appState.filters.hideEmptyRooms;
+                const initialFloorLabel = appState.filters.floor === 'all' ? '全校' : appState.filters.floor;
+                document.getElementById('current-floor-label').textContent = initialFloorLabel;
+                
+                saveToStorage(true); 
+            });
+        }
+
+        // --- DOM 助手 ---
+        function getValue(id) { return document.getElementById(id).value; }
+        function setValue(id, val) { document.getElementById(id).value = val; }
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            const content = modal.querySelector('.modal-exit-placeholder');
+            if (content) {
+                 content.classList.remove('modal-exit');
+                 content.classList.add('modal-animated');
+            }
+            modal.classList.remove('hidden');
+        }
+        function closeModal(id) { 
+            const modal = document.getElementById(id);
+            const content = modal.querySelector('.modal-animated');
+            
+            if (content) {
+                content.classList.remove('modal-animated');
+                content.classList.add('modal-exit');
+            }
+            setTimeout(() => {
+                modal.classList.add('hidden'); 
+                if (content) {
+                    content.classList.remove('modal-exit');
+                    content.classList.add('modal-animated');
+                }
+                appState.editingId = null; 
+                appState.pendingSave = null;
+                appState.pendingDrop = null;
+            }, content ? 200 : 0); 
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let icon = type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
+            let colors = type === 'success' ? 'bg-emerald-600' : 'bg-slate-800';
+            if (type === 'error') { icon = 'fa-exclamation-circle'; colors = 'bg-red-500'; }
+            toast.className = `${colors} text-white px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 min-w-[200px] max-w-[90vw] toast-enter backdrop-blur-sm`;
+            toast.innerHTML = `<i class="fas ${icon} text-lg"></i><span class="font-bold text-sm md:text-base">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(20px)'; setTimeout(() => toast.remove(), 3000); }, 3000);
+        }
+
+        function removeElementSmoothly(element, callback = () => {}) {
+            if (!element) return callback();
+            if (element.tagName === 'TR' && element.closest('tbody')) {
+                 element.querySelectorAll('td').forEach(td => {
+                    td.style.overflow = 'hidden';
+                    td.style.transition = 'all 0.3s ease-out';
+                    td.style.opacity = '0';
+                    td.style.paddingTop = '0';
+                    td.style.paddingBottom = '0';
+                 });
+                 element.style.transition = 'all 0.4s ease-out';
+                 element.style.height = '0';
+                 element.style.borderWidth = '0';
+                 element.style.opacity = '0';
+            } else {
+                 element.classList.add('slide-up-exit');
+            }
+            setTimeout(() => {
+                element.remove();
+                callback();
+            }, 500); 
+        }
+        
+        let onConfirmAction = null;
+        function showConfirm(msg, action) {
+            document.getElementById('confirm-msg').textContent = msg;
+            onConfirmAction = action;
+            openModal('modal-confirm');
+        }
+        document.getElementById('btn-confirm-yes').onclick = () => {
+            if (onConfirmAction) onConfirmAction();
+            closeModal('modal-confirm');
+            onConfirmAction = null;
+        };
+
+        // =========================================================================
+        // 2. 數據核心邏輯 (Data & Conflict)
+        // =========================================================================
+        
+        /**
+         * 取得課程涉及的所有學生名單 (用於衝堂檢測)
+         * @param {object} course 課程物件
+         * @returns {string[]} 學生姓名陣列
+         */
+        function getStudentsInCourse(course) {
+            if (!course.student || course.student.trim() === '') return [];
+
+            // 處理 Practice/Other 類型中，如果學生字段被用作備註而非學生姓名，則不進行衝堂檢查
+            if ((course.type === 'Practice' || course.type === 'Other') && !appState.students.some(s => s.name === course.student)) {
+                return [];
+            }
+            
+            if (course.type === 'Individual' || course.type === 'Practice' || course.type === 'Other') {
+                return [course.student];
+            } else if (course.type === 'Group') {
+                const groupTags = course.student.split(/[,、]+/).map(g => g.trim()).filter(g => g);
+                const matchedStudents = appState.students.filter(s => {
+                    return groupTags.some(tag => {
+                        if (CONSTANTS.grades.includes(tag) && s.grade === tag) return true;
+                        
+                        const tagsToCheck = [
+                            s.orchestra, s.chamber, s.other, 
+                            `樂理${s.theory}`, `視唱${s.sight}`, `節奏${s.rhythm}`
+                        ].filter(t => t); 
+                        
+                        return tagsToCheck.some(t => {
+                            if (t.includes(tag)) return true; // 檢查樂團/室內樂/其他課程
+                            if (t === tag) return true; // 檢查樂理/視唱/節奏分組標籤
+                            return false;
+                        });
+                    });
+                }).map(s => s.name);
+                return matchedStudents;
+            }
+            return [];
+        }
+
+        /**
+         * 核心邏輯：衝堂檢查
+         * @param {object} targetCourse 目標課程
+         * @returns {object[]} 衝突列表
+         */
+        function checkConflicts(targetCourse) {
+            const conflicts = [];
+            
+            // 只有 Practice/Other 且無學生時才跳過學生衝堂檢查
+            const isPracticeOrOtherWithoutStudent = (targetCourse.type === 'Practice' || targetCourse.type === 'Other') && (!targetCourse.student || targetCourse.student.trim() === '');
+            const targetStudents = isPracticeOrOtherWithoutStudent ? [] : getStudentsInCourse(targetCourse);
+
+            // 取得同時間的所有其他課程 (排除自己)
+            const others = appState.schedule.filter(c => 
+                c.day === targetCourse.day && 
+                c.start === targetCourse.start && 
+                (targetCourse.id ? c.id !== targetCourse.id : true) 
+            );
+
+            others.forEach(other => {
+                // 1. 地點衝突
+                if (other.room === targetCourse.room) {
+                    conflicts.push({ type: '地點衝突', details: `${targetCourse.room} 已有 ${other.subject} (${other.student || '無學生/外借'})` });
+                }
+
+                // 2. 老師衝突
+                if (targetCourse.teacher && other.teacher && targetCourse.teacher !== '-' && targetCourse.teacher === other.teacher) {
+                    conflicts.push({ type: '老師衝堂', details: `${targetCourse.teacher} 老師同時在 ${other.room} 上課` });
+                }
+
+                // 3. 學生衝堂 
+                if (isPracticeOrOtherWithoutStudent) return; 
+                
+                // 不論類型，只要有學生，都進行衝堂檢查
+                if (targetStudents.length > 0) {
+                    const otherStudents = getStudentsInCourse(other);
+                    const intersection = targetStudents.filter(name => otherStudents.includes(name));
+                    
+                    if (intersection.length > 0) {
+                        const conflictNames = intersection.slice(0, 3).join(', ') + (intersection.length > 3 ? '...' : '');
+                        conflicts.push({ type: '學生衝堂', details: `學生 ${conflictNames} 同時在 ${other.room} 上 ${other.subject}` });
+                    }
+                }
+            });
+
+            return conflicts;
+        }
+
+        // =========================================================================
+        // 3. 資料儲存與載入
+        // =========================================================================
+
+        function saveToStorage(skipHistory = false) { 
+            try {
+                localStorage.setItem('musicScheduleData', JSON.stringify({
+                    ...appState,
+                    currentTab: appState.currentTab, 
+                    selectedStudentIds: Array.from(appState.selectedStudentIds)
+                })); 
+            } catch(e) {
+                console.error('Save failed', e);
+                showToast('儲存失敗，請檢查瀏覽器設定', 'error');
+            }
+        }
+
+        function loadFromStorage() { 
+            const data = localStorage.getItem('musicScheduleData'); 
+            if (data) {
+                try { 
+                    const parsed = JSON.parse(data); 
+                    if(parsed) {
+                        appState = { ...appState, ...parsed };
+                        
+                        appState.students = parsed.students || defaultStudents;
+                        appState.faculty = parsed.faculty || defaultFaculty;
+                        appState.currentTab = parsed.currentTab || 'schedule'; 
+                        
+                        // 處理舊版本 filters 結構，確保有新的 Other 類型
+                        if (!parsed.filters || !parsed.filters.types.hasOwnProperty('Other')) {
+                            appState.filters.types.Other = true;
+                        }
+
+                        if(parsed.selectedStudentIds && Array.isArray(parsed.selectedStudentIds)) {
+                            appState.selectedStudentIds = new Set(parsed.selectedStudentIds);
+                        } else {
+                            appState.selectedStudentIds = new Set();
+                        }
+                    }
+                } catch(e) { console.error('Load failed', e); } 
+            }
+            // 確保首次載入後，初始狀態被記錄到歷史中
+            if(historyStack.length === 0) recordHistory();
+        }
+
+        // =========================================================================
+        // 4. 初始化與主控台
+        // =========================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            setTheme(appState.theme || 'white');
+            initUI();
+            
+            renderSchedule();
+            
+            const savedTab = appState.currentTab || 'schedule';
+            
+            switchTab(savedTab); 
+            
+            if(savedTab === 'settings') {
+                const isClassView = !document.getElementById('st-panel-class').classList.contains('hidden');
+                switchSettingTab(isClassView ? 'class' : 'faculty');
+            } else if (savedTab === 'search') {
+                executeSearch(document.getElementById('search-input').value);
+            }
+            
+            // 初始化樓層標籤顯示
+            const initialFloorLabel = appState.filters.floor === 'all' ? '全校' : appState.filters.floor;
+            document.getElementById('current-floor-label').textContent = initialFloorLabel;
+            
+            // 初始化隱藏空教室選項
+            const hideEmptyRoomsCheckbox = document.getElementById('filter-hide-empty-rooms');
+            if (hideEmptyRoomsCheckbox) hideEmptyRoomsCheckbox.checked = appState.filters.hideEmptyRooms;
+            
+            // 初始化 Other 類型篩選框
+            const otherTypeCheckbox = document.getElementById('filter-type-other');
+            if (otherTypeCheckbox) otherTypeCheckbox.checked = appState.filters.types.Other;
+        });
+
+        function initUI() {
+            const daySelect = document.getElementById('edit-day');
+            CONSTANTS.days.forEach(d => daySelect.add(new Option(CONSTANTS.dayMap[d], d)));
+            const timeSelect = document.getElementById('edit-start');
+            CONSTANTS.timeslots.forEach(t => timeSelect.add(new Option(t, t)));
+            const roomSelect = document.getElementById('edit-room');
+            CONSTANTS.rooms.forEach(r => roomSelect.add(new Option(r, r)));
+            
+            setupGlobalDragDrop();
+        }
+
+        function switchTab(tabId) {
+            appState.currentTab = tabId;
+            ['schedule', 'search', 'settings'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tabId);
+                
+                const btn = document.getElementById(`btn-${t}`);
+                if(btn) {
+                    if (t === tabId) {
+                        btn.classList.add('shadow-sm');
+                        btn.style.backgroundColor = 'var(--bg-panel)';
+                        btn.style.color = 'var(--primary-color)';
+                    } else {
+                        btn.classList.remove('shadow-sm');
+                        btn.style.backgroundColor = 'transparent';
+                        btn.style.color = 'var(--text-sub)';
+                    }
+                }
+
+                const mobileBtn = document.getElementById(`mobile-btn-${t}`);
+                if(mobileBtn) { mobileBtn.classList.toggle('active', t === tabId); }
+            });
+            
+            if (tabId === 'search') {
+                executeSearch(document.getElementById('search-input').value);
+            } else if (tabId === 'settings') {
+                const isClassView = !document.getElementById('st-panel-class').classList.contains('hidden');
+                switchSettingTab(isClassView ? 'class' : 'faculty');
+            }
+            saveToStorage(true);
+        }
+
+        function switchSettingTab(tab) {
+            document.getElementById('st-panel-class').classList.toggle('hidden', tab !== 'class');
+            document.getElementById('st-panel-faculty').classList.toggle('hidden', tab !== 'faculty');
+            const btnClass = document.getElementById('st-btn-class');
+            const btnFac = document.getElementById('st-btn-faculty');
+            
+            if(tab === 'class') {
+                btnClass.classList.add('shadow-md');
+                btnClass.style.backgroundColor = 'var(--bg-panel)';
+                btnClass.style.color = 'var(--primary-color)';
+                btnFac.classList.remove('shadow-md');
+                btnFac.style.backgroundColor = 'transparent';
+                btnFac.style.color = 'var(--text-sub)';
+                renderClassTable();
+            } else {
+                btnFac.classList.add('shadow-md');
+                btnFac.style.backgroundColor = 'var(--bg-panel)';
+                btnFac.style.color = 'var(--primary-color)';
+                btnClass.classList.remove('shadow-md');
+                btnClass.style.backgroundColor = 'transparent';
+                btnClass.style.color = 'var(--text-sub)';
+                renderFacultyTable();
+            }
+            saveToStorage(true);
+        }
+
+        function setTheme(themeName) {
+            const t = THEMES[themeName];
+            if(!t) return;
+            const root = document.documentElement;
+            document.body.classList.remove('theme-black');
+
+            for (const [key, value] of Object.entries(t)) {
+                const cssVar = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
+                root.style.setProperty(cssVar, value);
+            }
+            root.style.setProperty('--bg-gradient-from', t.from);
+            root.style.setProperty('--bg-gradient-to', t.to);
+            root.style.setProperty('--primary-color', t.primary);
+            root.style.setProperty('--accent-blob', t.accent);
+            
+            appState.theme = themeName;
+            saveToStorage();
+
+            if (themeName === 'black') { document.body.classList.add('theme-black'); }
+            
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.querySelector(`.theme-btn[onclick="setTheme('${themeName}')"]`);
+            if(activeBtn) activeBtn.classList.add('active');
+            
+            if (appState.currentTab === 'settings') renderClassTable();
+            if (appState.currentTab === 'search') executeSearch(document.getElementById('search-input').value);
+        }
+
+        // --- 歷史紀錄 UI ---
+        function undo() {
+            if (historyIndex > 0) { historyIndex--; restoreState(historyStack[historyIndex]); updateUndoRedoUI(); showToast('已復原上一步', 'info'); }
+        }
+        function redo() {
+            if (historyIndex < historyStack.length - 1) { historyIndex++; restoreState(historyStack[historyIndex]); updateUndoRedoUI(); showToast('已重做下一步', 'info'); }
+        }
+        function updateUndoRedoUI() {
+            document.getElementById('btn-undo').disabled = historyIndex <= 0;
+            document.getElementById('btn-redo').disabled = historyIndex >= historyStack.length - 1;
+        }
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); }
+        });
+
+        // =========================================================================
+        // 5. 排課總表 (Schedule)
+        // =========================================================================
+        
+        /**
+         * 新增：樓層下拉菜單控制 - 修復 bug
+         */
+        let isFloorMenuOpen = false;
+
+        function toggleFloorMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('floor-dropdown');
+            const toggleBtn = document.getElementById('btn-floor-toggle');
+            const icon = toggleBtn.querySelector('.fa-chevron-down');
+
+            // 確保每次點擊都切換狀態
+            isFloorMenuOpen = dropdown.classList.contains('hidden'); 
+            
+            dropdown.classList.toggle('hidden', !isFloorMenuOpen);
+            icon.classList.toggle('rotate-180', isFloorMenuOpen);
+            
+            if (isFloorMenuOpen) {
+                document.addEventListener('click', closeFloorMenuOutside);
+            } else {
+                document.removeEventListener('click', closeFloorMenuOutside);
+            }
+        }
+
+        function closeFloorMenuOutside(event) {
+            const container = document.getElementById('floor-filter-container');
+            // 如果點擊目標不在容器內，則關閉菜單
+            if (container && !container.contains(event.target)) {
+                if (isFloorMenuOpen) { 
+                    isFloorMenuOpen = false; // 手動設置狀態
+                    document.getElementById('floor-dropdown').classList.add('hidden');
+                    document.getElementById('btn-floor-toggle').querySelector('.fa-chevron-down').classList.remove('rotate-180');
+                    document.removeEventListener('click', closeFloorMenuOutside);
+                }
+            }
+        }
+
+        function selectFloorFilter(floor, event) {
+            event.stopPropagation();
+            
+            // 執行篩選邏輯
+            appState.filters.floor = floor;
+            renderSchedule();
+
+            // 更新按鈕標籤
+            const label = document.getElementById('current-floor-label');
+            label.textContent = floor === 'all' ? '全校' : floor;
+
+            // 更新菜單項目 active 狀態
+            document.querySelectorAll('.floor-menu-item').forEach(btn => {
+                const isActive = btn.dataset.floor === floor;
+                btn.classList.toggle('text-primary', isActive);
+                btn.classList.toggle('text-gray-700', !isActive);
+            });
+            
+            // 關閉菜單
+            isFloorMenuOpen = true; 
+            toggleFloorMenu(event); 
+        }
+
+        /**
+         * 隱藏空教室控制
+         */
+        function toggleHideEmptyRooms() {
+            const checkbox = document.getElementById('filter-hide-empty-rooms');
+            appState.filters.hideEmptyRooms = checkbox.checked;
+            saveToStorage(true);
+            renderSchedule();
+        }
+
+        /**
+         * 取得篩選後的教室列表 (包含樓層和隱藏空教室邏輯)
+         */
+        function getFilteredRooms() {
+            const floor = appState.filters.floor;
+            const allRooms = CONSTANTS.rooms;
+            let filteredRooms = [];
+
+            // 1. 應用樓層篩選
+            if (floor === 'all') {
+                filteredRooms = allRooms;
+            } else {
+                filteredRooms = allRooms.filter(room => {
+                    if (floor === '3F') return room.startsWith('3') || room.includes('3F');
+                    if (floor === '2F') { 
+                        const is2xx = room.startsWith('2') && !isNaN(parseInt(room.substring(1,3))); 
+                        const specialRooms = ["弦樂教室", "木管教室", "銅管教室", "國樂教室", "中廳"]; 
+                        return is2xx || specialRooms.includes(room); 
+                    }
+                    if (floor === '1F') return ["合奏教室", "音樂教室", "打擊教室"].includes(room);
+                    return false;
+                });
+            }
+
+            // 2. 應用隱藏空教室篩選
+            if (appState.filters.hideEmptyRooms) {
+                const daySchedule = appState.schedule.filter(c => c.day === appState.currentDayView);
+                
+                filteredRooms = filteredRooms.filter(room => {
+                    return daySchedule.some(c => c.room === room);
+                });
+            }
+
+            return filteredRooms;
+        }
+
+        function setDayFilter(day) {
+            appState.currentDayView = day;
+            ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].forEach(d => {
+                document.getElementById(`filter-day-${d}`).classList.toggle('active', d === day);
+            });
+            renderSchedule();
+        }
+        function toggleTypeFilter(type) {
+            appState.filters.types[type] = !appState.filters.types[type];
+            // 由於新增了 Other 類型，需要重新設置篩選狀態
+            const checkbox = document.querySelector(`#filter-type-other`) || document.querySelector(`input[onchange*="toggleTypeFilter('${type}')"]`);
+            if (checkbox) {
+                checkbox.checked = appState.filters.types[type];
+            }
+
+            renderSchedule();
+        }
+
+        // 更新：新增卡片類型判斷
+        function getCardTypeClass(type) { 
+            return type === 'Group' ? 'card-group' : type === 'Practice' ? 'card-practice' : type === 'Other' ? 'card-other' : 'card-individual'; 
+        }
+        
+        function renderSchedule() {
+            const visibleRooms = getFilteredRooms();
+            const thead = document.getElementById('schedule-header-group');
+            const tbody = document.getElementById('schedule-body');
+
+            // 1. 渲染 Header
+            thead.innerHTML = ''; 
+            const trHead = document.createElement('tr');
+            trHead.innerHTML = `<th class="p-4 w-24 text-xs font-bold text-center schedule-corner">時段</th>` +
+                visibleRooms.map(room => `<th class="p-4 min-w-[160px] text-sm font-bold text-center whitespace-nowrap schedule-row-header border-r-0" style="color: var(--text-sub);">${room}</th>`).join('');
+            thead.appendChild(trHead);
+            
+            // 2. 渲染 Body
+            let tbodyHtml = '';
+            const daySchedule = appState.schedule.filter(c => c.day === appState.currentDayView);
+            
+            CONSTANTS.timeslots.forEach(time => {
+                let trHtml = `<tr>`;
+                trHtml += `<td class="p-2 text-xs font-bold text-center border-b border-r sticky left-0 schedule-col-header tabular-nums">${time.replace('-', '<br>')}</td>`;
+                
+                visibleRooms.forEach(room => {
+                    const allCellCourses = daySchedule.filter(c => c.start === time && c.room === room);
+                    const visibleCourses = allCellCourses.filter(c => appState.filters.types[c.type]);
+                    
+                    let shouldShowConflictBackground = false;
+                    
+                    if (allCellCourses.length > 1) { shouldShowConflictBackground = true; }
+
+                    let cardsHtml = '';
+                    allCellCourses.forEach(course => {
+                        const conflictsForCard = checkConflicts(course);
+                        const isConflict = conflictsForCard.length > 0; 
+                        
+                        if (!shouldShowConflictBackground && conflictsForCard.some(c => c.type === '老師衝堂' || c.type === '學生衝堂')) {
+                            shouldShowConflictBackground = true;
+                        }
+
+                        if (appState.filters.types[course.type]) {
+                            const studentDisplay = course.student || (course.type === 'Practice' ? '練琴' : (course.type === 'Other' ? '外借/備註' : '無學生'));
+                            
+                            cardsHtml += `
+                                <div class="schedule-card relative p-3 m-1 rounded-2xl border shadow-sm text-xs cursor-pointer select-none z-20 ${getCardTypeClass(course.type)} ${isConflict ? 'conflict' : ''}"
+                                    draggable="true" 
+                                    ondragstart="(function(e){e.stopPropagation(); appState.draggedCourseId='${course.id}'; this.classList.add('dragging'); document.body.classList.add('is-dragging'); e.dataTransfer.effectAllowed='move';}).call(this, event)"
+                                    ondragend="this.classList.remove('dragging'); document.body.classList.remove('is-dragging');"
+                                    onclick="(function(e){e.stopPropagation(); openCourseModal(${JSON.stringify(course).replace(/"/g, '&quot;')});}).call(this, event)">
+                                    <div class="font-bold truncate">${course.subject}</div>
+                                    <div class="text-[10px]" style="opacity: 0.8;">${course.teacher} • ${studentDisplay}</div>
+                                    <div class="text-[10px]" style="opacity: 0.6;">${course.room} ${course._note ? `• ${course._note}` : ''}</div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    const conflictClass = shouldShowConflictBackground ? 'bg-conflict' : '';
+                    const isDroppableTarget = (visibleCourses.length === 0 && !shouldShowConflictBackground);
+                    const targetClass = isDroppableTarget ? 'drag-target' : ''; 
+
+                    // 啟用拖曳進入處理，並移除 inline 的 ondragover/ondragleave
+                    const addBtnHtml = isDroppableTarget ? 
+                        `<button onclick="openCourseModal(null, {day: '${appState.currentDayView}', start: '${time}', room: '${room}'})" class="absolute inset-0 w-full h-full opacity-0 hover:opacity-100 flex items-center justify-center text-primary/50 z-0 transition-opacity duration-300 interactive-btn"><div class="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center"><i class="fas fa-plus"></i></div></button>` : '';
+
+                    trHtml += `
+                        <td class="p-1.5 relative h-28 align-top schedule-cell ${conflictClass} ${targetClass}"
+                            data-room="${room}" 
+                            data-time="${time}"
+                            ondragenter="handleDragEnter(this)"
+                            ondragover="event.preventDefault()" 
+                            ondragleave="handleDragLeave(this)"
+                            ondrop="handleCardDrop(event, '${room}', '${time}')">
+                            ${addBtnHtml}
+                            ${cardsHtml}
+                        </td>
+                    `;
+                });
+                trHtml += `</tr>`;
+                tbodyHtml += trHtml;
+            });
+            
+            tbody.innerHTML = tbodyHtml;
+        }
+        
+        // ========== 高效拖曳處理函數 (防止頻繁重繪) ==========
+        let currentDragTarget = null;
+
+        function handleDragEnter(cell) {
+            if (currentDragTarget === cell) return;
+            
+            if (currentDragTarget) {
+                currentDragTarget.classList.remove('drag-over');
+            }
+            
+            currentDragTarget = cell;
+            
+            if (appState.draggedCourseId) {
+                requestAnimationFrame(() => {
+                    if (cell.classList.contains('drag-target') || cell.classList.contains('bg-conflict')) {
+                        cell.classList.add('drag-over');
+                    }
+                });
+            }
+        }
+
+        function handleDragLeave(cell) {
+            if (currentDragTarget === cell) {
+                 // Nothing needed here for smooth transition
+            }
+        }
+
+        // --- 拖曳處理 ---
+        function setupGlobalDragDrop() {
+            const dz = document.getElementById('dropZone');
+            window.addEventListener('dragenter', (e) => { 
+                if (appState.draggedCourseId) return; 
+                if (e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) { 
+                    e.preventDefault(); 
+                    dz.classList.remove('hidden'); 
+                } 
+            });
+            dz.addEventListener('dragleave', (e) => { e.preventDefault(); if (e.target === dz) dz.classList.add('hidden'); });
+            dz.addEventListener('dragover', e => e.preventDefault());
+            dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.add('hidden'); const files = e.dataTransfer.files; if (files.length) processFile(files[0]); });
+        }
+
+        function handleCardDrop(e, room, time) {
+            e.preventDefault(); e.stopPropagation(); 
+            e.currentTarget.classList.remove('drag-over'); // 確保手動移除樣式
+            if (currentDragTarget) { // 清除全局目標狀態
+                currentDragTarget.classList.remove('drag-over');
+                currentDragTarget = null;
+            }
+            document.body.classList.remove('is-dragging'); 
+            
+            const courseId = appState.draggedCourseId;
+            appState.draggedCourseId = null; 
+            
+            if (!courseId) return;
+            
+            const course = appState.schedule.find(c => c.id === courseId);
+            if (!course) return;
+
+            const tempCourse = { ...course, day: appState.currentDayView, room: room, start: time };
+            const conflicts = checkConflicts(tempCourse);
+            
+            if (conflicts.length > 0) {
+                document.getElementById('conflict-details').innerHTML = `<ul class="list-disc list-inside space-y-1">${conflicts.map(c => `<li class="font-bold" style="color: var(--color-warning-text);"><i class="fas fa-exclamation-circle mr-1"></i> ${c.details}</li>`).join('')}</ul>`;
+                openModal('modal-conflict-warning');
+                appState.pendingDrop = tempCourse;
+                showToast('偵測到衝堂，請確認！', 'error');
+                return;
+            }
+
+            recordHistory(); 
+            course.day = tempCourse.day; 
+            course.room = tempCourse.room; 
+            course.start = tempCourse.start; 
+            recordHistory(); 
+            saveToStorage(); 
+            renderSchedule(); 
+            showToast('課程已更新', 'success'); 
+        }
+
+        // =========================================================================
+        // 6. 課程編輯 Modal
+        // =========================================================================
+
+        function openCourseModal(course, defaults = {}) {
+            appState.editingId = course ? course.id : null;
+            document.getElementById('modal-title').textContent = course ? '編輯課程' : '新增課程';
+            document.getElementById('btn-delete').classList.toggle('hidden', !course);
+            document.getElementById('btn-copy').classList.toggle('hidden', !course);
+            // 更新：預設類型為 Individual，若為舊資料則處理 Practice 或 Other
+            const defaultType = course ? (course.type === 'Practice' || course.type === 'Other' ? course.type : 'Individual') : 'Individual';
+            
+            const data = course || { day: defaults.day || 'Mon', start: defaults.start || CONSTANTS.timeslots[0], room: defaults.room || CONSTANTS.rooms[0], type: defaultType, subject: '', teacher: '', student: '' };
+            
+            setValue('edit-id', data.id || ''); 
+            setValue('edit-day', data.day); 
+            setValue('edit-start', data.start); 
+            setValue('edit-room', data.room); 
+            setValue('edit-type', data.type);
+            
+            handleTypeChange(); 
+            
+            setTimeout(() => {
+                setValue('edit-subject', data.subject); 
+                if(data.type === 'Individual' || data.type === 'Practice' || data.type === 'Other') {
+                    updateIndividualStudentList(); 
+                } else {
+                    handleSubjectChange();
+                }
+                
+                setValue('edit-teacher', data.teacher);
+                
+                if (data.type === 'Group') {
+                    // 團體課狀態還原邏輯
+                    const isMultiSelect = data.student && data.student.includes(',');
+                    if (isMultiSelect || CONSTANTS.grades.includes(data.student)) {
+                        setGroupFilter('class'); 
+                        const gradeSelector = document.getElementById('group-grade-selector');
+                        const selectedGroups = data.student.split(/[,、]+/).map(s => s.trim());
+                        Array.from(gradeSelector.querySelectorAll('input')).forEach(cb => {
+                            cb.checked = selectedGroups.includes(cb.value);
+                        });
+                        setValue('edit-student', data.student);
+                    } else if (data.student) { 
+                        setGroupFilter('tag'); 
+                        document.getElementById('edit-group-tag').value = data.student;
+                    } else {
+                        setGroupFilter('class'); // Default to multi-select view
+                    }
+                    updateGroupPreview();
+                } else { 
+                    setValue('edit-student', data.student); 
+                }
+            }, 50);
+            openModal('modal-course');
+        }
+
+        function handleTypeChange() {
+            const type = getValue('edit-type'); 
+            const subList = document.getElementById('subject-list'); 
+            const stuLabel = document.getElementById('label-student'); 
+            const stuInput = document.getElementById('edit-student'); 
+            const stuList = document.getElementById('student-list'); 
+            const groupFilter = document.getElementById('group-filter-type'); 
+            const tagSelect = document.getElementById('edit-group-tag');
+            const gradeSelector = document.getElementById('group-grade-selector');
+            const editSubject = document.getElementById('edit-subject');
+            
+            subList.innerHTML = ''; stuList.innerHTML = ''; tagSelect.innerHTML = '<option value="">選擇分組條件...</option>';
+            const allSubjects = new Set(); appState.faculty.forEach(f => f.subjects.forEach(s => allSubjects.add(s)));
+            
+            editSubject.onchange = null; // Reset listener
+
+            if (type === 'Group') {
+                stuLabel.style.opacity = 1.0; 
+                stuLabel.textContent = '班級 / 分組名稱'; 
+                groupFilter.classList.remove('hidden');
+                
+                const tags = new Set(); 
+                appState.students.forEach(s => { 
+                    if(s.theory) tags.add(`樂理${s.theory}`); 
+                    if(s.sight) tags.add(`視唱${s.sight}`); 
+                    if(s.rhythm) tags.add(`節奏${s.rhythm}`); 
+                    [s.orchestra, s.chamber, s.other].filter(t => t).forEach(field => {
+                        field.split(/[,、]+/).map(t => t.trim()).filter(t => t).forEach(t => tags.add(t));
+                    });
+                });
+                Array.from(tags).sort().forEach(t => tagSelect.add(new Option(t, t)));
+                
+                // Populate Grade Checkboxes
+                gradeSelector.innerHTML = '';
+                const standardGroups = [...CONSTANTS.grades, "管弦樂團", "國樂團", "合唱團"];
+                standardGroups.forEach(g => {
+                    const lbl = document.createElement('label');
+                    lbl.className = 'flex items-center space-x-2 cursor-pointer select-none p-1 hover:bg-gray-50 rounded';
+                    lbl.innerHTML = `<input type="checkbox" value="${g}" class="form-checkbox text-primary h-4 w-4 interactive-btn" onchange="updateGroupMultiSelectValue()"> <span class="text-xs font-bold text-gray-600">${g}</span>`;
+                    gradeSelector.appendChild(lbl);
+                });
+
+                setGroupFilter('class'); // Default to multi-select view
+                allSubjects.forEach(s => { if(['視唱', '樂理', '聽寫', '合奏', '室內樂', '樂團', '合唱'].some(k => s.includes(k))) subList.appendChild(new Option(s)); });
+                
+                editSubject.onchange = handleSubjectChange;
+
+            } else {
+                if (type === 'Practice') {
+                    stuLabel.textContent = '學生姓名 / 備註 (練琴者請輸入姓名)'; 
+                    stuInput.placeholder = '輸入學生姓名，或留空作為公共練琴時間...';
+                    allSubjects.forEach(s => { 
+                        if(!['視唱', '樂理', '聽寫', '合奏', '室內樂', '樂團', '合唱'].some(k => s.includes(k))) subList.appendChild(new Option(s)); 
+                    });
+                    subList.appendChild(new Option('自主練琴'));
+                } else if (type === 'Other') {
+                    stuLabel.textContent = '學生姓名 / 備註 (外借/其他請輸入備註)'; 
+                    stuInput.placeholder = '輸入學生姓名，或留空作為外借/備註...';
+                    allSubjects.forEach(s => { 
+                        if(!['視唱', '樂理', '聽寫', '合奏', '室內樂', '樂團', '合唱'].some(k => s.includes(k))) subList.appendChild(new Option(s)); 
+                    });
+                    subList.appendChild(new Option('外借/其他'));
+                } else { // Individual
+                    stuLabel.textContent = '學生姓名'; 
+                    stuInput.placeholder = '輸入姓名...';
+                    allSubjects.forEach(s => { 
+                        if(!['視唱', '樂理', '聽寫', '合奏', '室內樂', '樂團', '合唱'].some(k => s.includes(k))) subList.appendChild(new Option(s)); 
+                    });
+                }
+                stuLabel.style.opacity = 0.6; 
+                groupFilter.classList.add('hidden'); 
+                stuInput.classList.remove('hidden'); 
+                tagSelect.classList.add('hidden'); 
+                gradeSelector.classList.add('hidden');
+                
+                appState.students.forEach(s => stuList.appendChild(new Option(s.name, s.name)));
+                handleSubjectChange();
+            }
+        }
+        
+        function updateGroupMultiSelectValue() {
+            const gradeSelector = document.getElementById('group-grade-selector');
+            const checked = Array.from(gradeSelector.querySelectorAll('input:checked')).map(cb => cb.value);
+            document.getElementById('edit-student').value = checked.join(', ');
+            updateGroupPreview();
+        }
+
+        function updateIndividualStudentList() {
+            const subject = getValue('edit-subject');
+            const stuList = document.getElementById('student-list');
+            stuList.innerHTML = '';
+            
+            handleSubjectChange();
+            
+            if (!subject || subject === '自主練琴' || subject === '外借/其他' || getValue('edit-type') === 'Practice' || getValue('edit-type') === 'Other') {
+                appState.students.forEach(s => stuList.appendChild(new Option(s.name, s.name)));
+                return;
+            }
+            
+            const filteredStudents = appState.students.filter(s => {
+                if (s.major === subject || s.minor === subject) return true;
+                const otherCourses = s.other ? s.other.split(/[,、]+/).map(x => x.trim()) : [];
+                if (otherCourses.includes(subject)) return true;
+                return false;
+            });
+            
+            filteredStudents.forEach(s => {
+                let note = '';
+                if (s.major === subject) note = '主修';
+                else if (s.minor === subject) note = '副修';
+                else if (s.other && s.other.includes(subject)) note = '其他課程';
+                
+                stuList.appendChild(new Option(`${s.name} (${note})`, s.name));
+            });
+            
+            if (filteredStudents.length === 0 && appState.students.length > 0) {
+                 appState.students.forEach(s => stuList.appendChild(new Option(s.name, s.name)));
+                 showToast(`沒有找到主修/副修/其他課程為「${subject}」的學生，已顯示全部`, 'info');
+            }
+        }
+
+        function setGroupFilter(mode) {
+            appState.groupFilterMode = mode; 
+            const btnClass = document.getElementById('gf-class'); 
+            const btnTag = document.getElementById('gf-tag'); 
+            const stuInput = document.getElementById('edit-student'); 
+            const tagSelect = document.getElementById('edit-group-tag');
+            const gradeSelector = document.getElementById('group-grade-selector');
+
+            if (mode === 'class') {
+                btnClass.classList.add('shadow'); btnClass.style.backgroundColor = 'var(--bg-input)'; btnClass.style.color = 'var(--text-main)';
+                btnTag.classList.remove('shadow'); btnTag.style.backgroundColor = 'transparent'; btnTag.style.color = 'var(--text-sub)';
+                
+                stuInput.classList.add('hidden'); 
+                tagSelect.classList.add('hidden'); 
+                gradeSelector.classList.remove('hidden');
+                
+                stuInput.oninput = null; // Clear old listener
+            } else {
+                btnTag.classList.add('shadow'); btnTag.style.backgroundColor = 'var(--bg-input)'; btnTag.style.color = 'var(--text-main)';
+                btnClass.classList.remove('shadow'); btnClass.style.backgroundColor = 'transparent'; btnClass.style.color = 'var(--text-sub)';
+                
+                stuInput.classList.add('hidden'); 
+                gradeSelector.classList.add('hidden');
+                tagSelect.classList.remove('hidden'); 
+                
+                tagSelect.onchange = () => updateGroupPreview();
+            }
+            updateGroupPreview();
+        }
+
+        function updateGroupPreview() {
+            const type = getValue('edit-type');
+            if (type !== 'Group') { document.getElementById('group-members-preview').classList.add('hidden'); return; }
+            
+            let groupNames = [];
+            if (appState.groupFilterMode === 'class') {
+                const gradeSelector = document.getElementById('group-grade-selector');
+                groupNames = Array.from(gradeSelector.querySelectorAll('input:checked')).map(cb => cb.value);
+            } else {
+                const tag = document.getElementById('edit-group-tag').value;
+                if(tag) groupNames.push(tag);
+            }
+
+            const members = new Set(); 
+            groupNames.forEach(g => { 
+                if(!g) return;
+                appState.students.filter(s => { 
+                    if (s.grade === g) return true; 
+                    const allTags = [s.orchestra, s.chamber, s.other].filter(t => t).join('、').split(/[,、]+/).map(t => t.trim());
+                    if (allTags.includes(g)) return true;
+                    if (`樂理${s.theory}` === g) return true; 
+                    if (`視唱${s.sight}` === g) return true; 
+                    if (`節奏${s.rhythm}` === g) return true; 
+                    return false; 
+                }).forEach(s => members.add(s.name)); 
+            });
+            
+            const preview = document.getElementById('group-members-preview'); 
+            preview.textContent = members.size > 0 ? `預計成員 (${members.size}人): ${Array.from(members).slice(0, 5).join(', ')}...` : "無符合成員"; 
+            preview.classList.remove('hidden');
+        }
+        
+        function handleSubjectChange() { 
+            const subject = getValue('edit-subject'); 
+            const teacherList = document.getElementById('teacher-list'); 
+            teacherList.innerHTML = ''; 
+            const teachers = appState.faculty.filter(f => f.subjects.some(s => s.includes(subject) || subject.includes(s))); 
+            teachers.forEach(t => teacherList.appendChild(new Option(t.name))); 
+        }
+        
+        function saveCourse(force = false) {
+            
+            let newCourse = appState.pendingSave || appState.pendingDrop;
+            
+            if (!newCourse) {
+                const type = getValue('edit-type'); 
+                let studentVal = getValue('edit-student'); 
+                
+                if (type === 'Group' && appState.groupFilterMode === 'tag') { 
+                    studentVal = document.getElementById('edit-group-tag').value; 
+                } else if (type === 'Group' && appState.groupFilterMode === 'class') {
+                    const gradeSelector = document.getElementById('group-grade-selector');
+                    const checked = Array.from(gradeSelector.querySelectorAll('input:checked')).map(cb => cb.value);
+                    studentVal = checked.join(', ');
+                }
+                
+                const teacherName = getValue('edit-teacher');
+                const subjectName = getValue('edit-subject');
+
+                newCourse = { id: appState.editingId || Date.now().toString(), day: getValue('edit-day'), start: getValue('edit-start'), room: getValue('edit-room'), type: type, subject: subjectName, teacher: teacherName, student: studentVal };
+                
+                if (!newCourse.subject) { showToast('請填寫完整科目名稱', 'error'); return; }
+                // 更新：Practice/Other 類型，允許學生字段為空
+                if (newCourse.type !== 'Practice' && newCourse.type !== 'Other' && !newCourse.student) { 
+                    showToast('個別課或團體課請填寫學生姓名或分組條件', 'error'); return; 
+                }
+            }
+
+            if (!force) {
+                const conflicts = checkConflicts(newCourse);
+                if (conflicts.length > 0) {
+                    document.getElementById('conflict-details').innerHTML = `<ul class="list-disc list-inside space-y-1">${conflicts.map(c => `<li class="font-bold" style="color: var(--color-warning-text);"><i class="fas fa-exclamation-circle mr-1"></i> ${c.details}</li>`).join('')}</ul>`;
+                    openModal('modal-conflict-warning');
+                    appState.pendingSave = newCourse; 
+                    appState.pendingDrop = null; 
+                    return;
+                }
+            }
+            
+            closeModal('modal-conflict-warning');
+            appState.pendingSave = null;
+            appState.pendingDrop = null;
+            
+            recordHistory();
+
+            // 1. Sync Faculty DB
+            if (newCourse.teacher) {
+                const existingTeacher = appState.faculty.find(f => f.name === newCourse.teacher);
+                if (!existingTeacher) {
+                    appState.faculty.push({ title: "兼任教師", name: newCourse.teacher, subjects: [newCourse.subject], degree: "" });
+                } else {
+                    if (newCourse.subject && !existingTeacher.subjects.includes(newCourse.subject)) {
+                        existingTeacher.subjects.push(newCourse.subject);
+                    }
+                }
+            }
+
+            // 2. Sync Student DB (Add subject to 'other' if not major/minor/group)
+             if ((newCourse.type === 'Individual' || newCourse.type === 'Group' || ((newCourse.type === 'Practice' || newCourse.type === 'Other') && newCourse.student)) && newCourse.student) { 
+                const studentsToUpdate = getStudentsInCourse(newCourse); 
+                studentsToUpdate.forEach(name => {
+                    const s = appState.students.find(st => st.name === name);
+                    if (s) {
+                        const isAbilityClass = newCourse.subject.includes('樂理') || newCourse.subject.includes('視唱') || newCourse.subject.includes('節奏');
+                        const isMajorMinorOrchestraChamber = [s.major, s.minor, s.orchestra, s.chamber].some(val => val && val.includes(newCourse.subject));
+
+                        if (!isAbilityClass && !isMajorMinorOrchestraChamber) {
+                            const currentOthers = s.other ? s.other.split(/[,、]+/).map(x => x.trim()) : [];
+                            if (!currentOthers.includes(newCourse.subject)) {
+                                currentOthers.push(newCourse.subject);
+                                s.other = currentOthers.join('、');
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            // 3. 儲存課程本身
+            if (newCourse.id && appState.schedule.some(c => c.id === newCourse.id)) { 
+                const idx = appState.schedule.findIndex(c => c.id === newCourse.id); 
+                appState.schedule[idx] = newCourse; 
+            } else { 
+                appState.schedule.push(newCourse); 
+            }
+            
+            recordHistory(); 
+            saveToStorage(); 
+            renderSchedule(); 
+            closeModal('modal-course'); 
+            showToast('課程已儲存', 'success');
+        }
+
+        function deleteCourse() { 
+            showConfirm('確定要刪除這堂課程嗎？此動作可以透過復原按鈕取消。', () => {
+                recordHistory();
+                appState.schedule = appState.schedule.filter(c => c.id !== appState.editingId); 
+                recordHistory();
+                saveToStorage(); 
+                renderSchedule();
+                closeModal('modal-course'); 
+                showToast('已刪除', 'info'); 
+            });
+        }
+        
+        function copyCourse() { 
+             const course = appState.schedule.find(c => c.id === appState.editingId);
+            if (course) {
+                closeModal('modal-course');
+                setTimeout(() => {
+                    openCourseModal(null, { day: course.day, start: course.start, room: course.room });
+                    setValue('edit-type', course.type);
+                    handleTypeChange();
+                    setTimeout(() => {
+                        setValue('edit-subject', course.subject);
+                        if(course.type === 'Individual' || course.type === 'Practice' || course.type === 'Other') { updateIndividualStudentList(); }
+                        setValue('edit-teacher', course.teacher);
+                        setValue('edit-student', course.student);
+                        if(course.type === 'Group') {
+                            const isMultiSelect = course.student && (course.student.includes(',') || CONSTANTS.grades.includes(course.student));
+                            if (isMultiSelect) {
+                                setGroupFilter('class');
+                                const selectedGroups = course.student.split(/[,、]+/).map(s => s.trim());
+                                Array.from(document.getElementById('group-grade-selector').querySelectorAll('input')).forEach(cb => {
+                                    cb.checked = selectedGroups.includes(cb.value);
+                                });
+                            } else if (course.student) {
+                                setGroupFilter('tag'); 
+                                document.getElementById('edit-group-tag').value = course.student;
+                            }
+                        }
+                        showToast('已複製資料，請調整時間地點後儲存', 'info');
+                    }, 50);
+                }, 100);
+            }
+        }
+
+        // =========================================================================
+        // 7. 查詢系統 (Search)
+        // =========================================================================
+
+        function setSearchViewMode(mode) {
+            appState.searchViewMode = mode;
+            document.getElementById('search-mode-grid').className = mode === 'grid' ? "px-4 py-2 rounded-xl text-sm font-bold shadow-md bg-white text-blue-600 interactive-btn" : "px-4 py-2 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 interactive-btn";
+            document.getElementById('search-mode-list').className = mode === 'list' ? "px-4 py-2 rounded-xl text-sm font-bold shadow-md bg-white text-blue-600 interactive-btn" : "px-4 py-2 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 interactive-btn";
+            executeSearch(document.getElementById('search-input').value); 
+        }
+
+        function updateSearchExportButton(query) {
+             const btn = document.getElementById('search-export-btn');
+             const results = appState.lastSearchResults; 
+             const isValid = query && results.length > 0;
+             btn.disabled = !isValid;
+             btn.classList.toggle('text-gray-500', !isValid);
+             btn.classList.toggle('hover:bg-gray-100', !isValid);
+             btn.classList.toggle('text-primary', isValid);
+             btn.classList.toggle('hover:bg-primary/10', isValid);
+        }
+
+        function fuzzyMatch(text, query) {
+            if (!text) return false;
+            const t = text.toLowerCase().trim();
+            const q = query.toLowerCase().trim();
+            return t.includes(q);
+        }
+
+        /**
+         * 執行搜索核心邏輯（由 handleSearch 延遲調用）
+         * @param {string} query 搜索字串
+         */
+        function executeSearch(query) {
+            const container = document.getElementById('search-results'); 
+            const suggestionsContainer = document.getElementById('search-suggestions');
+            const lowerQuery = query.toLowerCase().trim();
+            
+            container.style.backgroundColor = '';
+            container.style.borderColor = '';
+            container.classList.remove('rounded-2xl');
+
+            if (!lowerQuery) {
+                container.innerHTML = '';
+                suggestionsContainer.classList.add('hidden');
+                appState.lastSearchResults = [];
+                appState.lastSearchContext = { type: 'none', name: '' };
+                updateSearchExportButton(query);
+                return;
+            }
+            
+            // --- 1. 智慧推薦模式：如果查詢太短，只顯示推薦，不執行完整搜索 ---
+            if (lowerQuery.length < 2) { 
+                const suggestions = generateSuggestions(lowerQuery);
+                renderSuggestions(suggestions, suggestionsContainer, query);
+                container.innerHTML = `<div class="text-center py-10" style="color: var(--text-sub); opacity: 0.6;">輸入更多文字以進行完整搜索</div>`;
+                appState.lastSearchResults = [];
+                updateSearchExportButton(query);
+                return;
+            }
+            
+            // --- 2. 完整搜索模式：隱藏推薦，執行搜索 ---
+            suggestionsContainer.classList.add('hidden'); 
+            const results = []; 
+            const uniqueIds = new Set();
+            let contextType = 'general';
+            let contextName = query;
+
+            appState.schedule.forEach(c => {
+                let match = false;
+                let tag = '';
+                let note = '';
+
+                // 1. Subjects
+                if (fuzzyMatch(c.subject, query)) { match = true; tag = '科目匹配'; note = c.subject; }
+                
+                // 2. Rooms
+                if (fuzzyMatch(c.room, query)) { match = true; tag = '教室排課'; note = c.room; contextType = 'room'; contextName = c.room; }
+                
+                // 3. Teachers
+                if (c.teacher && fuzzyMatch(c.teacher, query)) { match = true; tag = '老師排課'; note = c.teacher; contextType = 'teacher'; contextName = c.teacher; }
+
+                // 4. Students/Groups
+                if (c.student) {
+                    const studentsInCourse = getStudentsInCourse(c);
+                    const studentMatch = appState.students.find(s => fuzzyMatch(s.name, query) || fuzzyMatch(s.id, query) || fuzzyMatch(s.major, query) || fuzzyMatch(s.minor, query));
+
+                    if (studentsInCourse.length > 0 && studentMatch && studentsInCourse.includes(studentMatch.name)) {
+                        match = true; 
+                        tag = c.type === 'Group' ? '團體課' : `${c.type}課`; 
+                        note = studentMatch.name;
+                        if (contextType !== 'teacher') { contextType = 'student'; contextName = studentMatch.name; }
+                    } else if (fuzzyMatch(c.student, query)) {
+                         // Fallback for group name match without explicit student match
+                         match = true; tag = '分組名稱匹配'; note = c.student;
+                    }
+                }
+                
+                if (match && !uniqueIds.has(c.id)) {
+                    results.push({...c, _tag: tag, _note: note});
+                    uniqueIds.add(c.id);
+                }
+            });
+
+            const finalUniqueResults = results.filter((value, index, self) => 
+                index === self.findIndex((t) => (t.id === value.id))
+            );
+
+            appState.lastSearchResults = finalUniqueResults;
+            appState.lastSearchContext = { type: contextType, name: contextName };
+            updateSearchExportButton(query);
+
+            if (finalUniqueResults.length === 0) { 
+                container.innerHTML = `<div class="text-center py-10" style="color: var(--text-sub); opacity: 0.6;">沒有找到與 "${query}" 相關的課程</div>`; 
+                return; 
+            }
+            
+            let headerHtml = '';
+            let titlePrefix = '綜合搜尋結果';
+            if (contextType === 'student') { titlePrefix = `${contextName} 學生`; }
+            else if (contextType === 'teacher') { titlePrefix = `${contextName} 老師`; }
+            else if (contextType === 'room') { titlePrefix = `${contextName} 教室`; }
+            else if (contextType === 'subject') { titlePrefix = `科目: ${contextName}`; }
+
+            headerHtml = `<h3 class="text-xl font-bold text-primary mb-4">${titlePrefix} (${finalUniqueResults.length} 筆課程)</h3>`;
+            container.innerHTML = headerHtml;
+
+            
+            // 渲染結果
+            if (appState.searchViewMode === 'list') {
+                finalUniqueResults.sort((a,b) => {
+                    const dayOrder = { 'Mon':1, 'Tue':2, 'Wed':3, 'Thu':4, 'Fri':5 };
+                    if(dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+                    return a.start.localeCompare(b.start);
+                });
+                const listContainer = document.createElement('div');
+                listContainer.className = "rounded-2xl shadow-sm border overflow-hidden";
+                listContainer.style.backgroundColor = 'var(--search-list-bg)';
+                listContainer.style.borderColor = 'var(--search-list-border)';
+
+                listContainer.innerHTML = `
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead class="bg-gray-50/50 border-b" style="border-color: var(--search-list-border); background-color: var(--bg-header);">
+                            <tr>
+                                <th class="p-3 font-bold" style="color: var(--text-sub); opacity: 0.6;">時間</th>
+                                <th class="p-3 font-bold" style="color: var(--text-sub); opacity: 0.6;">課程</th>
+                                <th class="p-3 font-bold" style="color: var(--text-sub); opacity: 0.6;">教室</th>
+                                <th class="p-3 font-bold" style="color: var(--text-sub); opacity: 0.6;">老師</th>
+                                <th class="p-3 font-bold" style="color: var(--text-sub); opacity: 0.6;">學生/班級</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y" style="border-color: var(--search-list-border);">
+                            ${finalUniqueResults.map(c => `
+                                <tr class="hover:bg-primary/10 cursor-pointer transition-colors" onclick='openCourseModal(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
+                                    <td class="p-3 tabular-nums"><span class="font-bold text-primary">${CONSTANTS.dayMap[c.day]}</span> <span class="text-xs" style="color: var(--text-sub); opacity: 0.6;">${c.start.split('-')[0]}</span></td>
+                                    <td class="p-3 font-bold" style="color: var(--text-main);">${c.subject} <span class="text-xs block" style="color: var(--text-sub); opacity: 0.6;">${c._tag || ''}</span></td>
+                                    <td class="p-3" style="color: var(--text-main);">${c.room}</td> 
+                                    <td class="p-3" style="color: var(--text-main);">${c.teacher}</td>
+                                    <td class="p-3" style="color: var(--text-main);">${c.student || (c.type === 'Practice' ? '練琴' : (c.type === 'Other' ? '外借/備註' : '無學生'))} <div class="text-[10px]" style="color: var(--text-sub); opacity: 0.6;">${c._note || ''}</div></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(listContainer);
+
+            } else {
+                 // 渲染週課表 (Grid Mode)
+                const tableWrapper = document.createElement('div'); 
+                tableWrapper.className = "overflow-x-auto rounded-[1.5rem] shadow-sm border glass-panel table-wrapper"; 
+                tableWrapper.style.backgroundColor = 'var(--search-list-bg)';
+                tableWrapper.style.borderColor = 'var(--search-list-border)';
+                
+                const table = document.createElement('table'); 
+                table.className = "w-full border-collapse min-w-[800px]"; 
+                
+                let theadHtml = `<tr class="schedule-table-header"><th class="p-4 w-24 text-xs font-bold text-center sticky left-0 z-10 schedule-corner">時段</th>`; 
+                CONSTANTS.days.forEach(day => theadHtml += `<th class="p-4 text-sm font-bold w-1/5 schedule-row-header" style="color: var(--text-sub); opacity: 0.6;">${CONSTANTS.dayMap[day]}</div></th>`); 
+                theadHtml += `</tr>`; 
+                table.innerHTML = `<thead>${theadHtml}</thead>`; 
+                
+                const tbody = document.createElement('tbody');
+                
+                CONSTANTS.timeslots.forEach(time => { 
+                    const tr = document.createElement('tr'); 
+                    tr.innerHTML = `<td class="p-2 text-xs font-bold text-center border-b border-r sticky left-0 z-10 schedule-col-header tabular-nums">${time.replace('-', '<br>')}</td>`; 
+                    
+                    CONSTANTS.days.forEach(day => { 
+                        const cellCourses = finalUniqueResults.filter(c => c.day === day && c.start === time); 
+                        const td = document.createElement('td'); 
+                        td.className = "p-1.5 border-b align-top h-28 transition-colors schedule-cell"; 
+                        
+                        cellCourses.forEach(c => { 
+                            const div = document.createElement('div'); 
+                            const studentDisplay = c.student || (c.type === 'Practice' ? '練琴' : (c.type === 'Other' ? '外借/備註' : '無學生'));
+                            div.className = `mb-2 p-2 rounded-xl border shadow-sm text-xs cursor-pointer hover:scale-[1.02] transition-transform ${getCardTypeClass(c.type)}`; 
+                            div.onclick = () => openCourseModal(c); 
+                            div.innerHTML = `<div class="font-bold truncate">${c.subject}</div><div class="text-[10px]" style="opacity: 0.8;">${c.teacher} • ${studentDisplay}</div><div class="text-[10px]" style="opacity: 0.6;">${c.room} ${c._note ? `• ${c._note}` : ''}</div>`; 
+                            td.appendChild(div); 
+                        }); 
+                        tr.appendChild(td); 
+                    }); 
+                    tbody.appendChild(tr); 
+                }); 
+                table.appendChild(tbody); 
+                tableWrapper.appendChild(table); 
+                container.appendChild(tableWrapper);
+            }
+        }
+        
+        /**
+         * 實作搜索輸入的防抖動 (Debounce)
+         * @param {string} query 
+         */
+        function handleSearch(query) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                executeSearch(query);
+            }, 300); // 300ms 延遲
+        }
+
+        /**
+         * 產生智慧推薦列表
+         * @param {string} query 
+         * @returns {Array<Object>}
+         */
+        function generateSuggestions(query) {
+            const lowerQuery = query.toLowerCase().trim();
+            if (!lowerQuery) return [];
+
+            const suggestions = {}; 
+            const limit = 6;
+            let count = 0;
+
+            const addSuggestion = (text, type, icon) => {
+                if (!suggestions[text] && count < limit) {
+                    suggestions[text] = { text, type, icon };
+                    count++;
+                }
+            };
+
+            // 1. Students (Name)
+            appState.students.filter(s => fuzzyMatch(s.name, lowerQuery)).forEach(s => addSuggestion(s.name, `學生 (${s.grade})`, 'fas fa-user-graduate'));
+            // 2. Faculty (Name)
+            appState.faculty.filter(f => fuzzyMatch(f.name, lowerQuery)).forEach(f => addSuggestion(f.name, `老師 (${f.title || '教師'})`, 'fas fa-chalkboard-teacher'));
+            
+            // 3. Rooms
+            CONSTANTS.rooms.filter(r => fuzzyMatch(r, lowerQuery)).forEach(r => addSuggestion(r, `教室`, 'fas fa-door-open'));
+
+            // 4. Subjects
+            const subjects = new Set();
+            appState.faculty.forEach(f => f.subjects.forEach(s => subjects.add(s)));
+            Array.from(subjects).filter(s => fuzzyMatch(s, lowerQuery)).forEach(s => addSuggestion(s, `科目`, 'fas fa-book'));
+            
+            return Object.values(suggestions);
+        }
+
+        /**
+         * 渲染推薦清單
+         */
+        function renderSuggestions(suggestions, container, currentQuery) {
+            if (suggestions.length === 0 || !currentQuery) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            
+            const listHtml = suggestions.map(s => `
+                <div class="flex items-center space-x-3 p-3 rounded-xl cursor-pointer hover:bg-gray-100/50 transition-colors interactive-btn"
+                     onclick="selectSuggestion('${s.text.replace(/'/g, "\\'")}')">
+                    <i class="${s.icon} w-5 text-center text-primary opacity-70"></i>
+                    <span class="font-medium text-sm" style="color: var(--text-main);">${s.text}</span>
+                    <span class="text-[10px] ml-auto px-2 py-0.5 rounded-full bg-primary/10 font-bold" style="color: var(--primary-color);">${s.type}</span>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <p class="text-xs font-bold uppercase tracking-wider mb-2 px-3" style="color: var(--text-sub); opacity: 0.6;">智慧建議</p>
+                <div class="space-y-1">${listHtml}</div>
+            `;
+        }
+
+        /**
+         * 點擊建議項目後，執行完整搜索
+         * @param {string} text 建議文字
+         */
+        function selectSuggestion(text) {
+            document.getElementById('search-input').value = text;
+            document.getElementById('search-suggestions').classList.add('hidden');
+            executeSearch(text); 
+        }
+
+        function printSearchResults() {
+            if (appState.currentTab !== 'search') {
+                switchTab('search');
+                setTimeout(printSearchResults, 100);
+                return;
+            }
+            
+            const query = document.getElementById('search-input').value;
+            if (!query || appState.lastSearchResults.length === 0) {
+                showToast('請先搜尋並取得結果', 'error');
+                return;
+            }
+
+            const printTitleEl = document.getElementById('search-print-title');
+            const printSubtitleEl = document.getElementById('search-print-subtitle');
+            
+            let resultName = appState.lastSearchContext.name || query;
+            
+            if (appState.searchViewMode === 'list') {
+                 printTitleEl.textContent = `[課程清單] ${resultName}`;
+                 printSubtitleEl.textContent = `共 ${appState.lastSearchResults.length} 筆課程 (查詢關鍵字：${query})`;
+            } else {
+                printTitleEl.textContent = `[週課表] ${resultName}`;
+                printSubtitleEl.textContent = `列印時間：${new Date().toLocaleDateString()}`;
+                
+                const tableWrapper = document.getElementById('search-results').querySelector('.table-wrapper');
+                 if(tableWrapper) {
+                     tableWrapper.style.overflowX = 'visible';
+                     tableWrapper.style.maxWidth = '100%'; 
+                 }
+            }
+
+            printTitleEl.classList.remove('hidden');
+            printSubtitleEl.classList.remove('hidden');
+            
+            window.print();
+
+            setTimeout(() => {
+                printTitleEl.classList.add('hidden');
+                printSubtitleEl.classList.add('hidden');
+                
+                if (appState.searchViewMode === 'grid') {
+                    const tableWrapper = document.getElementById('search-results').querySelector('.table-wrapper');
+                    if(tableWrapper) {
+                        tableWrapper.style.overflowX = 'auto'; 
+                        tableWrapper.style.maxWidth = null; 
+                    }
+                }
+            }, 100); 
+        }
+
+        // =========================================================================
+        // 8. 資料庫管理 (Database)
+        // =========================================================================
+
+        function getStudentTags(s) {
+            const tags = new Set();
+            
+            [s.chamber, s.orchestra].filter(t => t).forEach(field => {
+                field.split(/[,、]+/).map(t => t.trim()).filter(t => t).forEach(t => tags.add(t));
+            });
+            
+            if (s.theory && s.theory.trim() && s.theory.trim() !== '-') tags.add(`樂理${s.theory.trim()}`);
+            if (s.sight && s.sight.trim() && s.sight.trim() !== '-') tags.add(`視唱${s.sight.trim()}`);
+            if (s.rhythm && s.rhythm.trim() && s.rhythm.trim() !== '-') tags.add(`節奏${s.rhythm.trim()}`);
+            
+            if (s.other) {
+                s.other.split(/[,、]+/).forEach(t => { 
+                    const cleanTag = t.trim();
+                    if (cleanTag) tags.add(cleanTag);
+                });
+            }
+            
+            const scheduledCourses = appState.schedule.filter(c => c.type === 'Individual' && c.student === s.name);
+            scheduledCourses.forEach(c => {
+                const courseName = c.subject.trim();
+                const isMajorMinorOrchestra = [s.major, s.minor].some(val => val && val.includes(courseName));
+                const isAbilityClass = courseName.includes('樂理') || courseName.includes('視唱') || courseName.includes('節奏');
+                if (!isMajorMinorOrchestra && !isAbilityClass && !Array.from(tags).some(tag => tag.includes(courseName))) {
+                    tags.add(`[排課] ${courseName}`);
+                }
+            });
+            return Array.from(tags).sort();
+        }
+
+        function getFilteredStudents() {
+            const q = appState.studentSearchQuery;
+            if (!q) return appState.students;
+            return appState.students.filter(s => {
+                const lowerQ = q.toLowerCase();
+                return (s.name && s.name.includes(lowerQ)) || 
+                       (s.id && s.id.includes(lowerQ)) || 
+                       (s.grade && s.grade.includes(lowerQ)) || 
+                       (s.major && s.major.includes(lowerQ)) || 
+                       (s.minor && s.minor.includes(lowerQ)) || 
+                       (s.orchestra && s.orchestra.includes(lowerQ)) || 
+                       (s.chamber && s.chamber.includes(lowerQ)) ||
+                       (s.other && s.other.includes(lowerQ));
+            });
+        }
+        
+        function renderStudentCards(filteredStudents) {
+            const cardGrid = document.getElementById('class-card-grid');
+            const listContainer = document.getElementById('class-list-container');
+            if (!cardGrid || !listContainer) return;
+            
+            cardGrid.classList.remove('hidden');
+            listContainer.classList.add('hidden');
+            
+            cardGrid.innerHTML = filteredStudents.map((s) => {
+                const allTags = getStudentTags(s);
+                
+                const tagsHtml = allTags.map(tag => {
+                    let textColorStyle = 'color: var(--student-group-color);';
+                    let displayName = tag;
+                    let titleText = tag;
+
+                    if (tag.startsWith('[排課]')) {
+                        textColorStyle = 'color: var(--primary-color);'; 
+                        displayName = tag.substring(5).trim(); 
+                        titleText = `排課科目: ${displayName}`;
+                    } else if (tag.includes('樂理') || tag.includes('視唱') || tag.includes('節奏')) {
+                        textColorStyle = 'color: var(--student-ability-color);';
+                        displayName = tag.replace('樂理', '樂').replace('視唱', '視').replace('節奏', '節'); 
+                    }
+                    
+                    return `<span class="px-2.5 py-1 border rounded-lg text-[10px] font-medium bg-gray-100/70 whitespace-nowrap" style="border-color: rgba(0,0,0,0.05); ${textColorStyle}" title="${titleText}">${displayName}</span>`;
+                }).join('');
+
+                const gradePrefix = s.grade.includes('高') ? '高' : '國';
+                const gradeColor = s.grade.includes('高') ? 'bg-indigo-500' : 'bg-green-500';
+                const isSelected = appState.selectedStudentIds.has(s.id);
+                const selectedBorder = isSelected ? 'border-primary ring-2 ring-primary/50' : 'border-transparent';
+                const checkboxChecked = isSelected ? 'checked' : '';
+
+                return `
+                    <div class="glass-panel p-5 rounded-3xl shadow-lg hover:shadow-xl transition-all cursor-pointer relative ${selectedBorder} border-2 interactive-btn" 
+                        onclick="openClassModal('${s.id}')">
+                        
+                        <div class="absolute top-4 left-4 w-6 h-6 rounded-full ${gradeColor} flex items-center justify-center text-white text-xs font-bold">${gradePrefix}</div>
+
+                        <div class="absolute top-4 right-4 z-10" onclick="event.stopPropagation()">
+                            <label class="select-none">
+                                <input type="checkbox" onchange="toggleSelectStudentCard(event, '${s.id}')" ${checkboxChecked} class="form-checkbox text-primary interactive-btn">
+                            </label>
+                        </div>
+
+                        <div class="ml-8">
+                            <h4 class="text-xl font-bold tracking-tight truncate" title="${s.name}" style="color: var(--text-main);">${s.name}</h4>
+                            <p class="text-xs font-medium tabular-nums" style="color: var(--text-sub); opacity: 0.6;">${s.id} | ${s.grade}</p>
+                            <button onclick="deleteClass('${s.id}', event)" class="absolute bottom-5 right-5 text-red-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-opacity interactive-btn" title="刪除學生"><i class="fas fa-trash text-sm"></i></button>
+                        </div>
+
+                        <div class="mt-4 text-sm space-y-2 pb-2 border-b" style="border-color: var(--border-color);">
+                            <p class="flex justify-between items-center"><span class="font-bold w-16 shrink-0" style="color: var(--text-sub); opacity: 0.6;">主修:</span> <span class="font-semibold truncate text-right" style="color: var(--student-major-color);">${s.major || '-'}</span></p>
+                            <p class="flex justify-between items-center"><span class="font-bold w-16 shrink-0" style="color: var(--text-sub); opacity: 0.6;">副修:</span> <span class="font-semibold truncate text-right" style="color: var(--student-major-color);">${s.minor || '-'}</span></p>
+                            <p class="flex justify-between items-center"><span class="font-bold w-16 shrink-0" style="color: var(--text-sub); opacity: 0.6;">樂團:</span> <span class="font-semibold truncate text-right" style="color: var(--student-group-color);" title="${s.orchestra || ''}">${s.orchestra || '-'}</span></p>
+                        </div>
+                        
+                        ${allTags.length > 0 ? `
+                            <div class="mt-3">
+                                <p class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-sub); opacity: 0.6;">分組標籤 (${allTags.length})</p>
+                                <div class="flex flex-wrap gap-1.5">${tagsHtml}</div>
+                            </div>
+                        ` : `<div class="mt-3"><p class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-sub); opacity: 0.6;">分組標籤</p><p class="text-xs text-gray-400">- 無 -</p></div>`}
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderStudentList(filteredStudents) {
+            const listContainer = document.getElementById('class-list-container');
+            const cardGrid = document.getElementById('class-card-grid');
+            if (!listContainer || !cardGrid) return;
+
+            listContainer.classList.remove('hidden');
+            cardGrid.classList.add('hidden');
+
+            const renderAbility = (s) => {
+                const parts = [];
+                const abilityColorStyle = `style="color: var(--student-ability-color);"`;
+
+                if (s.theory) parts.push(`<span ${abilityColorStyle}>樂理${s.theory}</span>`);
+                if (s.sight) parts.push(`<span ${abilityColorStyle}>視唱${s.sight}</span>`);
+                if (s.rhythm) parts.push(`<span ${abilityColorStyle}>節奏${s.rhythm}</span>`);
+
+                return parts.join(' / ');
+            };
+            
+            listContainer.innerHTML = `
+                <div class="h-full overflow-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="p-3 w-10 text-center db-sticky-header" style="color: var(--text-sub); opacity: 0.6;"><input type="checkbox" onchange="toggleSelectAll(this)" class="form-checkbox text-primary interactive-btn"></th>
+                                <th class="p-3 font-bold whitespace-nowrap db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">年級</th>
+                                <th class="p-3 font-bold whitespace-nowrap db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">姓名 / 學號</th>
+                                <th class="p-3 font-bold whitespace-nowrap db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">主修</th>
+                                <th class="p-3 font-bold whitespace-nowrap db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">副修</th>
+                                <th class="p-3 font-bold whitespace-nowrap db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">能力分班</th>
+                                <th class="p-3 font-bold whitespace-nowrap w-1/4 db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">樂團 / 室內樂 / 其他課程</th>
+                                <th class="p-3 font-bold w-20 whitespace-nowrap db-sticky-header" style="color: var(--text-sub); opacity: 0.6;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-list-body" class="divide-y" style="border-color: var(--border-color);">
+                            ${filteredStudents.map(s => {
+                                const abilityGroupHtml = renderAbility(s);
+                                const isSelected = appState.selectedStudentIds.has(s.id);
+                                const checkboxChecked = isSelected ? 'checked' : '';
+                                const majorTags = [s.orchestra, s.chamber, s.other].filter(t => t).join('、');
+
+                                return `
+                                    <tr class="schedule-cell border-b last:border-0 hover:bg-blue-50/50 transition-colors cursor-pointer" onclick="openClassModal('${s.id}')" data-id="${s.id}">
+                                        <td class="p-3 text-center" onclick="event.stopPropagation()">
+                                            <input type="checkbox" onchange="toggleSelectStudentCard(event, '${s.id}')" ${checkboxChecked} class="form-checkbox text-primary interactive-btn">
+                                        </td>
+                                        <td class="p-3 font-medium whitespace-nowrap" style="color: var(--text-sub); opacity: 0.6;">${s.grade}</td>
+                                        <td class="p-3 font-bold whitespace-nowrap" style="color: var(--text-main);">${s.name} <span class="text-[10px] block tabular-nums" style="color: var(--text-sub); opacity: 0.5;">${s.id}</span></td>
+                                        <td class="p-3 text-xs whitespace-nowrap" style="color: var(--student-major-color);">${s.major || '-'}</td>
+                                        <td class="p-3 text-xs whitespace-nowrap" style="color: var(--student-major-color);">${s.minor || '-'}</td>
+                                        <td class="p-3 text-xs whitespace-nowrap">${abilityGroupHtml || '-'}</td>
+                                        <td class="p-3 text-xs max-w-[200px] truncate" style="color: var(--student-group-color);" title="${majorTags}">${majorTags || '-'}</td>
+                                        <td class="p-3 whitespace-nowrap">
+                                            <button onclick="openClassModal('${s.id}')" class="mr-2 hover:opacity-70 interactive-btn" style="color: var(--primary-color);"><i class="fas fa-edit"></i></button>
+                                            <button onclick="deleteClass('${s.id}', event)" class="text-red-400 hover:text-red-600 interactive-btn"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function renderClassTable() {
+            const cardGrid = document.getElementById('class-card-grid');
+            const listContainer = document.getElementById('class-list-container');
+            const emptyMessage = document.getElementById('empty-class-message');
+            const btnCard = document.getElementById('student-mode-card');
+            const btnList = document.getElementById('student-mode-list');
+            
+            const filteredStudents = getFilteredStudents();
+
+            emptyMessage.classList.toggle('hidden', filteredStudents.length > 0);
+            
+            if (appState.studentViewMode === 'card') {
+                btnCard.classList.add('text-primary', 'bg-white/70', 'shadow');
+                btnList.classList.remove('text-primary', 'bg-white/70', 'shadow');
+                btnList.classList.add('text-gray-500');
+            } else {
+                btnList.classList.add('text-primary', 'bg-white/70', 'shadow');
+                btnCard.classList.remove('text-primary', 'bg-white/70', 'shadow');
+                btnCard.classList.add('text-gray-500');
+            }
+
+            if (appState.studentViewMode === 'card') {
+                renderStudentCards(filteredStudents);
+            } else {
+                renderStudentList(filteredStudents);
+            }
+
+            const filteredIds = filteredStudents.map(s => s.id);
+            const allSelected = filteredIds.length > 0 && filteredIds.every(id => appState.selectedStudentIds.has(id));
+            const selectAllCheckbox = document.querySelector('#st-panel-class input[onchange="toggleSelectAll(this)"]');
+            if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+
+            saveToStorage(true);
+        }
+
+        function filterStudents(query) {
+            appState.studentSearchQuery = query.toLowerCase();
+            renderClassTable();
+        }
+        
+        function setStudentViewMode(mode) {
+            appState.studentViewMode = mode;
+            renderClassTable();
+            saveToStorage();
+        }
+
+        function toggleSelectStudentCard(event, id) {
+             event.stopPropagation();
+             if(appState.selectedStudentIds.has(id)) {
+                 appState.selectedStudentIds.delete(id);
+             } else {
+                 appState.selectedStudentIds.add(id);
+             }
+             const card = event.target.closest('div[onclick*="openClassModal"]');
+             if (card) {
+                card.classList.toggle('border-primary', appState.selectedStudentIds.has(id));
+                card.classList.toggle('ring-2', appState.selectedStudentIds.has(id));
+                card.classList.toggle('ring-primary/50', appState.selectedStudentIds.has(id));
+             }
+             // 同步全選狀態
+             const filteredStudents = getFilteredStudents();
+             const filteredIds = filteredStudents.map(s => s.id);
+             const allSelected = filteredIds.length > 0 && filteredIds.every(id => appState.selectedStudentIds.has(id));
+             const selectAllCheckbox = document.querySelector('#st-panel-class input[onchange="toggleSelectAll(this)"]');
+             if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+        }
+
+        function toggleSelectAll(checkbox) {
+            const filteredStudents = getFilteredStudents();
+            if(checkbox.checked) {
+                filteredStudents.forEach(s => appState.selectedStudentIds.add(s.id));
+            } else {
+                filteredStudents.forEach(s => appState.selectedStudentIds.delete(s.id));
+            }
+            renderClassTable();
+        }
+
+        function openBatchEditModal() {
+            if(appState.selectedStudentIds.size === 0) return showToast('請先勾選學生', 'error');
+            document.getElementById('batch-count-display').textContent = `已選擇 ${appState.selectedStudentIds.size} 位學生`;
+            openModal('modal-batch-edit');
+        }
+
+        function saveBatchEdit() {
+            recordHistory();
+            const field = document.getElementById('batch-field').value;
+            const value = document.getElementById('batch-value').value;
+            
+            let count = 0;
+            appState.students.forEach(s => {
+                if(appState.selectedStudentIds.has(s.id)) {
+                    if (field === 'other') {
+                        if (value.startsWith('+')) {
+                            const toAdd = value.substring(1).trim();
+                            const currentOthers = s.other ? s.other.split(/[,、]+/).map(v => v.trim()).filter(v => v) : [];
+                            if (!currentOthers.includes(toAdd)) currentOthers.push(toAdd);
+                            s.other = currentOthers.join('、');
+                        } else {
+                            s.other = value.split(/[,、]+/).map(v => v.trim()).filter(v => v).join('、');
+                        }
+                    } else if (['orchestra', 'chamber'].includes(field)) {
+                         s[field] = value.split(/[,、]+/).map(v => v.trim()).filter(v => v).join(',');
+                    } 
+                    else {
+                        s[field] = value;
+                    }
+                    count++;
+                }
+            });
+            
+            recordHistory(); 
+            saveToStorage();
+            renderClassTable();
+            closeModal('modal-batch-edit');
+            appState.selectedStudentIds.clear();
+            renderClassTable(); 
+            showToast(`已更新 ${count} 位學生的資料`, 'success');
+        }
+        
+        function openClassModal(id) {
+            appState.dbEditingType = 'class'; appState.editingId = id || null;
+            const s = id ? appState.students.find(x => x.id === id) : {id:'', grade:'國一', name:'', gender:'', major:'', minor:'', theory:'', sight:'', rhythm:'', orchestra:'', chamber:'', other:''};
+            document.getElementById('db-modal-title').textContent = id ? '編輯學生資料' : '新增學生';
+            
+            const orchestraDisplay = s.orchestra ? s.orchestra.split(/[,、]+/).map(v => v.trim()).filter(v => v).join(',') : '';
+            const chamberDisplay = s.chamber ? s.chamber.split(/[,、]+/).map(v => v.trim()).filter(v => v).join(',') : '';
+            const otherDisplay = s.other ? s.other.split(/[,、]+/).map(v => v.trim()).filter(v => v).join('、') : '';
+            
+            const gradeOptions = CONSTANTS.grades.map(g=>`<option ${g===s.grade?'selected':''}>${g}</option>`).join('');
+
+            document.getElementById('db-modal-content').innerHTML = `
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">學號</label><input id="db-s-id" value="${s.id}" class="w-full p-2 rounded custom-input tabular-nums"></div>
+                <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">姓名</label><input id="db-s-name" value="${s.name}" class="w-full p-2 rounded custom-input"></div>
+                <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">年級</label><select id="db-s-grade" class="w-full p-2 rounded custom-input">${gradeOptions}</select></div>
+                <div class="col-span-1"><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">性別</label><input id="db-s-gender" value="${s.gender}" class="w-full p-2 rounded custom-input" placeholder="ex: 男/女"></div>
+                <div class="col-span-2 grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">主修</label><input id="db-s-major" value="${s.major}" class="w-full p-2 rounded custom-input"></div>
+                    <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">副修</label><input id="db-s-minor" value="${s.minor}" class="w-full p-2 rounded custom-input"></div>
+                </div>
+                <div class="col-span-2 grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">樂團 (逗號分隔)</label><input id="db-s-orchestra" value="${orchestraDisplay}" class="w-full p-2 rounded custom-input" placeholder="ex: 管弦樂團,國樂團"></div>
+                    <div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">室內樂 (逗號分隔)</label><input id="db-s-chamber" value="${chamberDisplay}" class="w-full p-2 rounded custom-input" placeholder="ex: 弦樂室內樂,長笛三重奏"></div>
+                </div>
+            
+                <div class="col-span-2 p-3 rounded-xl border space-y-2" style="background-color: var(--hover-bg); border-color: var(--border-color);">
+                    <label class="block text-xs font-bold" style="color: var(--text-main); opacity: 0.6;">能力分班 (樂理 / 視唱 / 節奏)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div><p class="text-xs font-medium" style="color: var(--text-sub); opacity: 0.8;">樂理</p><input id="db-s-theory" value="${s.theory}" class="w-full p-1.5 rounded text-center custom-input text-sm tabular-nums" placeholder="ex: A"></div>
+                        <div><p class="text-xs font-medium" style="color: var(--text-sub); opacity: 0.8;">視唱</p><input id="db-s-sight" value="${s.sight}" class="w-full p-1.5 rounded text-center custom-input text-sm tabular-nums" placeholder="ex: B"></div>
+                        <div><p class="text-xs font-medium" style="color: var(--text-sub); opacity: 0.8;">節奏</p><input id="db-s-rhythm" value="${s.rhythm}" class="w-full p-1.5 rounded text-center custom-input text-sm tabular-nums" placeholder="ex: C"></div>
+                    </div>
+                </div>
+                
+                <div class="col-span-2"><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">其他課程 (Tags，頓號或逗號分隔)</label><input id="db-s-other" value="${otherDisplay}" class="w-full p-2 rounded custom-input" placeholder="ex: 作曲、指揮"></div>
+            </div>`;
+            openModal('modal-db');
+        }
+
+        function openFacultyModal(idx) {
+            appState.dbEditingType = 'faculty'; appState.editingId = idx !== undefined ? idx : null;
+            const fac = idx !== undefined ? appState.faculty[idx] : {title:'', name: '', subjects: [], degree: ''};
+            document.getElementById('db-modal-title').textContent = idx !== undefined ? '編輯老師' : '新增老師';
+            document.getElementById('db-modal-content').innerHTML = `<div class="space-y-4 text-sm"><div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">職稱</label><input id="db-f-title" value="${fac.title}" class="w-full p-2 rounded custom-input" placeholder="ex: 音樂科兼任教師"></div><div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">姓名</label><input id="db-f-name" value="${fac.name}" class="w-full p-2 rounded custom-input"></div><div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">授課科目 (逗號或換行分隔)</label><textarea id="db-f-subjects" rows="3" class="w-full p-2 rounded custom-input">${fac.subjects.join('\n')}</textarea></div><div><label class="block text-xs font-bold mb-1" style="color: var(--text-main); opacity: 0.6;">學歷</label><input id="db-f-degree" value="${fac.degree}" class="w-full p-2 rounded custom-input"></div></div>`;
+            openModal('modal-db');
+        }
+        
+        function saveDBEntry() {
+            recordHistory(); 
+            if (appState.dbEditingType === 'class') { 
+                const id = getValue('db-s-id'); if(!id) return showToast('請輸入學號', 'error');
+                const newS = { 
+                    id: id, 
+                    name: getValue('db-s-name'), 
+                    grade: getValue('db-s-grade'), 
+                    gender: getValue('db-s-gender') || '',
+                    major: getValue('db-s-major'), 
+                    minor: getValue('db-s-minor'), 
+                    orchestra: getValue('db-s-orchestra').split(/[,、]+/).map(v => v.trim()).filter(v => v).join(','), 
+                    chamber: getValue('db-s-chamber').split(/[,、]+/).map(v => v.trim()).filter(v => v).join(','), 
+                    theory: getValue('db-s-theory'), 
+                    sight: getValue('db-s-sight'), 
+                    rhythm: getValue('db-s-rhythm'), 
+                    other: getValue('db-s-other').split(/[,、]+/).map(v => v.trim()).filter(v => v).join('、')
+                };
+                if(appState.editingId) { const idx = appState.students.findIndex(s => s.id === appState.editingId); appState.students[idx] = newS; } else appState.students.push(newS);
+                renderClassTable();
+            } else { 
+                const name = getValue('db-f-name'); if (!name) return showToast('請輸入姓名', 'error');
+                const newFac = { title: getValue('db-f-title'), name: name, subjects: getValue('db-f-subjects').split(/[\n,、]+/).map(s => s.trim()).filter(s => s), degree: getValue('db-f-degree') };
+                if (appState.editingId !== null) appState.faculty[appState.editingId] = newFac; else appState.faculty.push(newFac);
+                renderFacultyTable();
+            }
+            recordHistory(); 
+            saveToStorage(); closeModal('modal-db'); showToast('儲存成功', 'success');
+        }
+
+        function renderFacultyTable() {
+            const filteredFaculty = appState.faculty.filter(f => {
+                const q = appState.facultySearchQuery.toLowerCase();
+                if (!q) return true;
+                return (f.name && f.name.includes(q)) || 
+                       (f.subjects && f.subjects.some(sub => sub.includes(q)));
+            });
+
+            const listContainer = document.getElementById('faculty-list-container');
+            const cardGrid = document.getElementById('faculty-card-grid');
+
+            if (appState.facultyViewMode === 'card') {
+                listContainer.classList.add('hidden');
+                cardGrid.classList.remove('hidden');
+                // renderFacultyCards implementation (omitted for brevity, assume similar to original)
+                const cardHtml = filteredFaculty.map((f, idx) => `
+                    <div class="glass-panel p-5 rounded-3xl shadow-lg hover:shadow-xl transition-all cursor-pointer relative interactive-btn" onclick="openFacultyModal(${idx})">
+                        <div class="absolute top-4 left-4 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">師</div>
+
+                        <div class="ml-8">
+                            <h4 class="text-xl font-bold tracking-tight truncate" style="color: var(--text-main);">${f.name}</h4>
+                            <p class="text-xs font-medium" style="color: var(--text-sub); opacity: 0.6;">${f.title || '教師'}</p>
+                            <button onclick="deleteFaculty(${idx}, event)" class="absolute bottom-5 right-5 text-red-400 hover:text-red-600 opacity-80 hover:opacity-100 transition-opacity interactive-btn" title="刪除教師"><i class="fas fa-trash text-sm"></i></button>
+                        </div>
+                        <div class="mt-4 text-sm space-y-2 pb-2 border-b" style="border-color: var(--border-color);">
+                            <p class="flex justify-between items-center"><span class="font-bold w-16 shrink-0" style="color: var(--text-sub); opacity: 0.6;">學歷:</span> <span class="text-xs italic truncate text-right">${f.degree || '-'}</span></p>
+                        </div>
+                        <div class="mt-3">
+                            <p class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-sub); opacity: 0.6;">授課科目 (${f.subjects.length})</p>
+                            <div class="flex flex-wrap gap-1.5">
+                                ${f.subjects.map(s => `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 whitespace-nowrap">${s}</span>`).join('')}
+                            </div>
+                            <p class="text-xs text-gray-400 ${f.subjects.length === 0 ? '' : 'hidden'}">- 無 -</p>
+                        </div>
+                    </div>
+                `).join('');
+                cardGrid.innerHTML = cardHtml;
+
+            } else {
+                cardGrid.classList.add('hidden');
+                listContainer.classList.remove('hidden');
+                // renderFacultyList implementation (omitted for brevity, assume similar to original)
+                const tbody = document.getElementById('faculty-table-body');
+                tbody.innerHTML = filteredFaculty.map((f, idx) => `
+                    <tr class="schedule-cell border-b last:border-0 hover:bg-blue-50/50 transition-colors" data-id="fac-${idx}">
+                        <td class="p-4 md:p-5 font-bold text-xs" style="color: var(--text-sub); opacity: 0.6;">${f.title || '-'}</td>
+                        <td class="p-4 md:p-5 font-bold" style="color: var(--text-main);">${f.name}</td>
+                        <td class="p-4 md:p-5"><div class="flex flex-wrap gap-2">${f.subjects.map(s => `<span class="px-2.5 py-1 border rounded-lg text-xs font-medium" style="background-color: var(--hover-bg); border-color: var(--border-color); color: var(--primary-color);">${s}</span>`).join('')}</div></td>
+                        <td class="p-4 md:p-5 text-xs" style="color: var(--text-sub); opacity: 0.6;">${f.degree || '-'}</td>
+                        <td class="p-4 md:p-5">
+                            <button onclick="openFacultyModal(${idx})" class="mr-2 hover:opacity-70 interactive-btn" style="color: var(--primary-color);"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteFaculty(${idx}, event)" class="text-red-400 hover:text-red-600 interactive-btn"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            document.getElementById('empty-faculty-message').classList.toggle('hidden', filteredFaculty.length > 0);
+        }
+
+        function filterFaculty(query) {
+            appState.facultySearchQuery = query.toLowerCase();
+            renderFacultyTable();
+        }
+        
+        function setFacultyViewMode(mode) {
+            appState.facultyViewMode = mode;
+            renderFacultyTable();
+            saveToStorage();
+        }
+
+        function deleteClass(id, event) { 
+            event.stopPropagation(); 
+            showConfirm('確定要刪除這位學生嗎？此動作將無法從資料庫還原。', () => {
+                recordHistory();
+                const studentName = appState.students.find(s => s.id === id)?.name;
+                const studentRow = document.querySelector(`tr[data-id="${id}"]`);
+                const studentCard = document.querySelector(`div[onclick*="openClassModal('${id}')"]`);
+                
+                if (studentName) {
+                    appState.schedule = appState.schedule.filter(c => 
+                        !(c.type === 'Individual' && c.student === studentName)
+                    );
+                }
+                
+                appState.students = appState.students.filter(s => s.id !== id);
+                
+                recordHistory();
+                saveToStorage(); 
+                
+                if (appState.studentViewMode === 'list' && studentRow) {
+                     removeElementSmoothly(studentRow, renderClassTable);
+                } else if (appState.studentViewMode === 'card' && studentCard) {
+                     removeElementSmoothly(studentCard, renderClassTable);
+                } else {
+                    renderClassTable();
+                }
+
+                showToast('已刪除學生', 'info');
+            });
+        }
+        
+        function deleteFaculty(idx, event) { 
+            event.stopPropagation(); 
+            showConfirm('確定要刪除這位老師嗎？', () => {
+                recordHistory();
+                const facultyElement = document.querySelector(`tr[data-id="fac-${idx}"]`) || document.querySelector(`div[onclick*="openFacultyModal(${idx})"]`);
+                
+                appState.faculty.splice(idx, 1); 
+                
+                recordHistory();
+                saveToStorage(); 
+                
+                 if (facultyElement) {
+                     removeElementSmoothly(facultyElement, renderFacultyTable);
+                } else {
+                    renderFacultyTable();
+                }
+                
+                showToast('已刪除老師', 'info');
+            });
+        }
+
+        // =========================================================================
+        // 9. 匯入與匯出 (I/O)
+        // =========================================================================
+        
+        function exportData() {
+            const now = new Date();
+            const fmt = (n) => n.toString().padStart(2, '0');
+            const timestamp = `${now.getFullYear()}_${fmt(now.getMonth()+1)}${fmt(now.getDate())}_${fmt(now.getHours())}${fmt(now.getMinutes())}`;
+            
+            const dataStr = JSON.stringify({
+                ...appState,
+                // 只導出核心數據，避免導出 UI 狀態
+                schedule: appState.schedule,
+                students: appState.students,
+                faculty: appState.faculty,
+                theme: appState.theme,
+                currentDayView: appState.currentDayView,
+                currentTab: appState.currentTab, // 確保導出當前 Tab
+                selectedStudentIds: Array.from(appState.selectedStudentIds)
+            }, null, 2);
+            
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `NSML_v2.2.0_${timestamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            showToast('系統資料備份已匯出', 'success');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+            event.target.value = '';
+        }
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result.trim();
+                if (file.name.endsWith('.json')) {
+                    try { 
+                        recordHistory();
+                        const parsed = JSON.parse(content); 
+                        if (parsed.schedule) { 
+                            if(parsed.selectedStudentIds && Array.isArray(parsed.selectedStudentIds)) {
+                                parsed.selectedStudentIds = new Set(parsed.selectedStudentIds);
+                            } else {
+                                parsed.selectedStudentIds = new Set();
+                            }
+                            
+                            // 僅還原關鍵數據
+                            appState.schedule = parsed.schedule;
+                            appState.students = parsed.students || [];
+                            appState.faculty = parsed.faculty || [];
+                            appState.theme = parsed.theme || 'white';
+                            appState.currentDayView = parsed.currentDayView || 'Mon';
+                            appState.currentTab = parsed.currentTab || 'schedule'; 
+                            appState.selectedStudentIds = parsed.selectedStudentIds;
+                            
+                            // 處理舊版本 filters 結構，確保有新的 Other 類型並保留舊狀態
+                            if (parsed.filters) {
+                                if (!parsed.filters.types.hasOwnProperty('Other')) {
+                                    // 將舊的 Practice 篩選狀態 (如果有) 應用到新的 Practice
+                                    parsed.filters.types = { 
+                                        Individual: parsed.filters.types.Individual,
+                                        Group: parsed.filters.types.Group,
+                                        Practice: parsed.filters.types.Practice,
+                                        Other: parsed.filters.types.Practice 
+                                    };
+                                }
+                                appState.filters = parsed.filters;
+                            } else {
+                                appState.filters = { floor: 'all', types: { Individual: true, Group: true, Practice: true, Other: true }, hideEmptyRooms: false };
+                            }
+
+
+                            setTheme(appState.theme); 
+                            recordHistory(); 
+                            saveToStorage(); 
+                            renderSchedule(); 
+                            switchTab(appState.currentTab); 
+                            showToast('系統還原成功', 'success'); 
+                        } 
+                    } catch (err) { showToast('JSON 格式錯誤或檔案內容不完整', 'error'); }
+                } else if (file.name.endsWith('.csv')) { importCSVAuto(content); } else { showToast('不支援的檔案格式', 'error'); }
+            };
+            reader.readAsText(file);
+        }
+        
+        function openCSVImportModal(target) {
+            appState.importTarget = target;
+            document.getElementById('csv-modal-title').textContent = target === 'student' ? '批次匯入學生資料' : '批次匯入師資資料';
+            document.getElementById('csv-modal-desc').innerHTML = target === 'student' ? '請貼上 CSV 內容 (格式: 學號,年級,姓名,性別,主修,副修,樂團,室內樂,樂理,視唱,節奏,其他課程)。<br/>**提示：建議使用 Tab 或分號分隔欄位以避免內容中的逗號造成錯誤。**' : '請貼上 CSV 內容 (格式: 職稱,姓名,授課科目,學歷)。<br/>**提示：建議使用 Tab 或分號分隔欄位以避免內容中的逗號造成錯誤。**';
+            document.getElementById('csv-input').value = '';
+            openModal('modal-csv');
+        }
+
+        function importCSVAuto(csvContent) {
+            recordHistory();
+            const lines = csvContent.split('\n').filter(line => line.trim());
+            if (lines.length < 1) return showToast('檔案內容為空', 'error');
+            
+            const header = lines[0].trim();
+            let successCount = 0;
+            const delimiter = header.includes('\t') ? '\t' : (header.includes(';') ? ';' : ',');
+            
+            const parseLine = (line) => {
+                if (delimiter !== ',') return line.split(delimiter).map(s => s.trim().replace(/^"|"$/g, ''));
+                const matches = line.match(/(?:^|,)(\"(?:[^\"]|\"\")*\"|[^,]*)/g) || [];
+                return matches.map(match => match.replace(/^,/, '').trim().replace(/^"|"$/g, ''));
+            };
+
+
+            if (header.includes('學號') && header.includes('姓名')) {
+                let newStudents = [];
+                for(let i=1; i<lines.length; i++) {
+                    const cols = parseLine(lines[i]);
+                    if(cols.length < 3 || !cols[0] || !cols[2]) continue;
+                    // 確保至少 12 欄，其餘為空字串
+                    while(cols.length < 12) cols.push('');
+
+                    const student = {
+                        id: cols[0], grade: cols[1], name: cols[2], gender: cols[3]||'', 
+                        major: cols[4]||'', minor: cols[5]||'', 
+                        orchestra: cols[6]||'', chamber: cols[7]||'', 
+                        theory: cols[8]||'', sight: cols[9]||'', rhythm: cols[10]||'',
+                        other: cols[11]||'' 
+                    };
+                    const existingIdx = appState.students.findIndex(s => s.id === student.id);
+                    if(existingIdx >= 0) appState.students[existingIdx] = student; else newStudents.push(student);
+                    successCount++;
+                }
+                appState.students = [...appState.students, ...newStudents];
+                renderClassTable();
+                showToast(`已成功匯入 ${successCount} 筆學生資料`, 'success');
+            } else if (header.includes('職稱') && header.includes('姓名')) {
+                let newFaculty = [];
+                for(let i=1; i<lines.length; i++) {
+                    const cols = parseLine(lines[i]);
+                    if(cols.length < 2 || !cols[1]) continue;
+                    
+                    const subjects = cols[2] ? cols[2].split(/[,、]+/).map(s=>s.trim()).filter(s => s) : [];
+                    const teacher = { title: cols[0] || '', name: cols[1], subjects: subjects, degree: cols[3] || '' };
+                    const existingIdx = appState.faculty.findIndex(f => f.name === teacher.name);
+                    if(existingIdx >= 0) appState.faculty[existingIdx] = teacher; else newFaculty.push(teacher);
+                    successCount++;
+                }
+                appState.faculty = [...appState.faculty, ...newFaculty];
+                renderFacultyTable();
+                showToast(`已成功匯入 ${successCount} 筆師資資料`, 'success');
+            } else { showToast('無法識別 CSV 格式', 'error'); }
+            recordHistory();
+            saveToStorage();
+        }
+
+        function exportStudentCSV() {
+            if (!appState.students || appState.students.length === 0) return showToast('無學生資料可匯出', 'error');
+            const header = "學號,年級,姓名,性別,主修,副修,樂團,室內樂,樂理,視唱,節奏,其他課程\n";
+            const rows = appState.students.map(s => `"${s.id}","${s.grade}","${s.name}","${s.gender||''}","${s.major||''}","${s.minor||''}","${s.orchestra||''}","${s.chamber||''}","${s.theory||''}","${s.sight||''}","${s.rhythm||''}","${s.other||''}"`).join('\n');
+            const blob = new Blob(["\uFEFF" + header + rows], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `students_export_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+            showToast('學生資料匯出成功', 'success');
+        }
+
+        function exportFacultyCSV() {
+            if (!appState.faculty || appState.faculty.length === 0) return showToast('無師資資料可匯出', 'error');
+            const header = "職稱,姓名,授課科目,學歷\n";
+            const rows = appState.faculty.map(f => `"${f.title||''}","${f.name}","${f.subjects.join('、')}","${f.degree||''}"`).join('\n');
+            const blob = new Blob(["\uFEFF" + header + rows], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `faculty_export_${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+            showToast('師資資料匯出成功', 'success');
+        }
+
+    </script>
+</body>
+</html>
